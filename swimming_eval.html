@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>泳力評価システム</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#f0f2f5;color:#222;padding:1.5rem}
+.app{max-width:860px;margin:0 auto}
+h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.sub{font-size:13px;color:#666;margin-bottom:1.2rem}
+.card{background:#fff;border:1px solid #ddd;border-radius:12px;padding:1.2rem 1.5rem;margin-bottom:1rem}
+.stitle{font-size:11px;font-weight:700;color:#999;margin-bottom:12px;text-transform:uppercase;letter-spacing:.07em}
+.ig{display:flex;flex-direction:column;gap:4px}
+.ig label{font-size:12px;color:#666}
+select,input[type=number],input[type=text]{width:100%;padding:7px 10px;font-size:14px;border:1px solid #ccc;border-radius:7px;background:#fafafa;color:#222}
+input.filled{background:#e8f5e9;border-color:#1D9E75}
+.evbtn{padding:11px 0;font-size:15px;font-weight:700;border:none;border-radius:8px;background:#1D9E75;color:#fff;cursor:pointer;display:block}
+.evbtn:hover{background:#0F6E56}
+.clrbtn{padding:9px 14px;font-size:13px;font-weight:600;border:1px solid #aaa;border-radius:7px;background:#fff;color:#888;cursor:pointer}
+.clrbtn:hover{background:#f0f0f0}
+.savebtn{padding:9px 16px;font-size:13px;font-weight:600;border:1px solid #378ADD;border-radius:7px;background:#fff;color:#378ADD;cursor:pointer}
+.savebtn:hover{background:#E6F1FB}
+.hint{font-size:11px;color:#aaa;margin-top:6px}
+.csv-area{padding:12px;background:#f8f9fa;border:1.5px dashed #ccc;border-radius:8px;margin-bottom:12px}
+.csv-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.csv-btn{padding:7px 14px;font-size:13px;font-weight:600;border:1px solid #1D9E75;border-radius:7px;background:#fff;color:#1D9E75;cursor:pointer;white-space:nowrap}
+.csv-btn:hover{background:#E1F5EE}
+.fps-wrap{display:flex;align-items:center;gap:5px}
+.fps-wrap label{font-size:12px;color:#666;white-space:nowrap}
+.fps-wrap input{width:65px}
+.csv-status{font-size:13px;margin-top:8px;min-height:20px;font-weight:500;padding:6px 8px;border-radius:6px}
+.csv-status:not(:empty){background:#f5f5f5}
+.csv-ok{color:#085041;font-weight:700}
+.csv-err{color:#791F1F;font-weight:700;font-size:13px}
+.csv-warn{color:#7d5200}
+
+.lane-sel-wrap{margin-top:8px;display:none;background:#fff;border:1px solid #d0e8d0;border-radius:8px;padding:10px}
+.lane-sel-wrap .ls-title{font-size:12px;font-weight:600;color:#1D9E75;margin-bottom:6px}
+.lane-list{display:flex;flex-wrap:wrap;gap:6px}
+.lane-item{padding:5px 12px;font-size:12px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fafafa;color:#444}
+.lane-item:hover{border-color:#1D9E75;color:#1D9E75;background:#f0faf5}
+.lane-item.active{border-color:#1D9E75;background:#1D9E75;color:#fff}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:1rem}
+.sc{background:#f7f9f7;border-radius:9px;padding:9px 6px;text-align:center;border:1px solid #e4e4e4}
+.sc .lb{font-size:11px;color:#888;margin-bottom:3px}
+.sc .nm{font-size:28px;font-weight:800;line-height:1.1}
+.sc .tv{font-size:10px;color:#aaa;margin-top:2px;line-height:1.5}
+.sc .bx{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;margin-top:5px}
+.n5{color:#1D9E75}.n4{color:#378ADD}.n3{color:#d4920a}.n2{color:#D86030}.n1{color:#C03030}
+.b5{background:#E1F5EE;color:#085041}.b4{background:#E6F1FB;color:#0C447C}.b3{background:#FFF3CD;color:#7d5200}.b2{background:#FAECE7;color:#712B13}.b1{background:#FCEBEB;color:#791F1F}
+.dr{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f2f2f2;font-size:13px;gap:6px;flex-wrap:wrap}
+.dr:last-child{border-bottom:none}
+.zbar-wrap{flex:1;min-width:120px;max-width:200px;position:relative;height:14px;background:#eee;border-radius:7px;overflow:visible}
+.zbar-fill{height:100%;border-radius:7px;position:absolute;top:0}
+.zbar-center{position:absolute;top:-2px;left:50%;width:2px;height:18px;background:#bbb}
+.radar-wrap{display:flex;justify-content:center;margin:4px 0 16px}
+/* SD説明 */
+.sd-legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;justify-content:center}
+.sd-leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:#666}
+.sd-swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+/* タブ */
+.tabs{display:flex;gap:0;margin-bottom:1rem;border-bottom:2px solid #e0e0e0}
+.tab-btn{padding:8px 22px;font-size:14px;font-weight:600;border:none;background:none;color:#888;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab-btn.active{color:#1D9E75;border-bottom-color:#1D9E75}
+.tab-pane{display:none}.tab-pane.active{display:block}
+/* 履歴 */
+.hist-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1px solid #eee;margin-bottom:6px;background:#fafafa;flex-wrap:wrap}
+.hist-item.selected{border-color:#378ADD;background:#EBF4FD}
+.hist-date{font-size:11px;color:#aaa;min-width:90px}
+.hist-label{font-size:13px;font-weight:600;color:#333;flex:1;min-width:120px}
+.hist-time{font-size:13px;color:#666;min-width:55px;text-align:right}
+.hist-scores{display:flex;gap:3px}
+.hscore{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.hist-btns{display:flex;gap:5px;margin-left:auto}
+.hist-btn{padding:4px 10px;font-size:11px;font-weight:600;border-radius:5px;cursor:pointer;border:1px solid #ccc;background:#fff;color:#555}
+.hist-btn.comp{border-color:#378ADD;color:#378ADD}.hist-btn.comp:hover{background:#E6F1FB}
+.hist-btn.del{border-color:#e0a0a0;color:#C03030}.hist-btn.del:hover{background:#FCEBEB}
+.no-hist{font-size:13px;color:#aaa;text-align:center;padding:1.5rem 0}
+.comp-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:12px}
+.comp-legend span{display:flex;align-items:center;gap:5px}
+.comp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* PDF生成中オーバーレイ */
+.pdf-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:18px;font-weight:700;gap:12px}
+.pdf-spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== 印刷・PDF出力用スタイル ===== */
+@media print {
+  body { background:#fff !important; padding:0 !important; font-size:11pt; }
+  .app { max-width:100% !important; }
+  /* 印刷時に非表示にする要素 */
+  .tabs, #tab-hist, .card:has(#pi),
+  .csv-area, .lane-sel-wrap, #input-hint,
+  button, .clrbtn, .savebtn, .evbtn,
+  .sd-legend { display:none !important; }
+  /* グラフカードは表示 */
+  #chart-card { display:block !important; break-inside:avoid; }
+  #chart-card svg { max-width:100%; }
+  /* 評価タブのみ表示 */
+  #tab-eval { display:block !important; }
+  /* 結果エリアは必ず表示 */
+  #result-area { display:block !important; }
+  /* カードのボーダー・影を調整 */
+  .card { border:1px solid #ccc !important; margin-bottom:8px !important;
+          padding:10px 14px !important; break-inside:avoid; }
+  /* レーダーチャートのサイズ調整 */
+  .radar-wrap svg { max-width:400px; }
+  /* スコアカードを横並び維持 */
+  .g5 { display:grid !important;
+        grid-template-columns:repeat(5,1fr) !important; }
+  /* ページヘッダーを追加 */
+  .print-header { display:block !important; }
+  /* WAポイントのフォントサイズ調整 */
+  #wa-points-val { font-size:36pt !important; }
+  /* 局面詳細テーブルのフォント */
+  #dr { font-size:9pt; }
+}
+/* 通常時は非表示にする印刷用ヘッダー */
+.print-header { display:none; }
+
+</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <h1>泳力評価システム</h1>
+  <p class="sub">レース各局面のタイムを標準モデルと比較してZスコアによる5段階評価（長水路50mプール）</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('tab-eval',this)">評価</button>
+    <button class="tab-btn" onclick="showTab('tab-hist',this)">履歴・比較</button>
+  </div>
+
+  <div id="tab-eval" class="tab-pane active">
+    <div class="card">
+      <div class="stitle">基本設定</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:10px">
+        <div class="ig"><label>性別</label>
+          <select id="sg"><option value="M">男子</option><option value="F">女子</option></select>
+        </div>
+        <div class="ig"><label>種目</label>
+          <select id="se">
+            <option value="50Fr">50m 自由形</option>
+            <option value="100Fr" selected>100m 自由形</option>
+            <option value="200Fr">200m 自由形</option>
+            <option value="100Fly">100m バタフライ</option>
+            <option value="200Fly">200m バタフライ</option>
+            <option value="100Ba">100m 背泳ぎ</option>
+            <option value="200Ba">200m 背泳ぎ</option>
+            <option value="100Br">100m 平泳ぎ</option>
+            <option value="200Br">200m 平泳ぎ</option>
+            <option value="200IM">200m IM</option>
+            <option value="400Fr">400m 自由形</option>
+            <option value="400IM">400m IM</option>
+          </select>
+        </div>
+        <div class="ig"><label>目標タイム（秒）</label>
+          <input type="number" id="st" value="55.0" step="0.01">
+        </div>
+        <div class="ig"><label>実績タイム（秒）<span style="font-size:10px;color:#aaa;margin-left:4px">CSV読込で自動入力</span></label>
+          <input type="number" id="at" placeholder="CSV読込 or 手動入力" step="0.01">
+        </div>
+        <div class="ig"><label>プール</label>
+          <select id="course">
+            <option value="LCM" selected>長水路 (LCM 50m)</option>
+            <option value="SCM">短水路 (SCM 25m)</option>
+          </select>
+        </div>
+        <div class="ig"><label>メモ（大会名など）</label>
+          <input type="text" id="memo" placeholder="例: ○○大会 予選">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stitle">局面タイム入力（秒）</div>
+      <div class="csv-area">
+        <div class="csv-top">
+          <div class="fps-wrap">
+            <label>fps：</label>
+            <input type="number" id="fps-val" value="60" min="1" max="1000" step="1">
+          </div>
+          <input type="file" id="csv-file" accept=".csv" style="display:none">
+          <button class="csv-btn" onclick="document.getElementById('csv-file').value='';document.getElementById('csv-file').click()">CSVを選択</button>
+          <span id="csv-fname" style="font-size:12px;color:#888">未選択</span>
+          <button class="clrbtn" style="padding:5px 12px;font-size:12px" onclick="clearCSV()">CSVクリア</button>
+        </div>
+        <div class="lane-sel-wrap" id="lane-sel-wrap">
+          <div class="ls-title">レーンを選択してください</div>
+          <div class="lane-list" id="lane-list"></div>
+        </div>
+        <div class="csv-status" id="csv-status"></div>
+      </div>
+      <div id="pi"></div>
+      <p class="hint">※ <b>手動入力</b>: スタートからの<b>通過タイム（累積秒）</b>を入力。プレースホルダーは目標タイム基準の標準値。<br>※ <b>CSV読込</b>: フレーム番号から自動変換。種目・局面数が一致しているか確認してください。<br></p>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="clrbtn" onclick="clearInputs()">入力クリア</button>
+        <button class="evbtn" id="evbtn" style="flex:1">評価する</button>
+      </div>
+    </div>
+
+    <div id="result-area" style="display:none">
+      <div class="card">
+        <!-- 印刷時のみ表示するヘッダー -->
+      <div class="print-header" id="print-header" style="margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #1D9E75">
+        <div style="font-size:18pt;font-weight:800;color:#1D9E75;margin-bottom:4px">泳力評価レポート</div>
+        <div id="ph-info" style="font-size:10pt;color:#555;line-height:1.8"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span class="stitle" style="margin-bottom:0">評価結果</span>
+        <div style="display:flex;gap:8px">
+          <button class="savebtn" onclick="saveResult()" style="padding:6px 12px;font-size:12px">💾 履歴に保存</button>
+          <button class="savebtn" onclick="printResult()" style="padding:6px 12px;font-size:12px;border-color:#1D9E75;color:#1D9E75">🖨 PDF出力</button>
+        </div>
+      </div>
+        <div id="wa-points-wrap" style="display:none;text-align:center;margin-bottom:1rem;padding:14px;background:#f7f9f7;border-radius:10px;border:1px solid #e4e4e4">
+          <div style="font-size:12px;color:#888;margin-bottom:4px">World Aquatics Swimming Points</div>
+          <div style="display:flex;align-items:baseline;justify-content:center;gap:8px">
+            <span id="wa-points-val" style="font-size:52px;font-weight:800;line-height:1"></span>
+            <span style="font-size:15px;color:#888">pts</span>
+          </div>
+          <div id="wa-points-label" style="font-size:13px;font-weight:700;margin-top:4px"></div>
+          <div id="wa-points-wr" style="font-size:11px;color:#aaa;margin-top:4px"></div>
+        </div>
+        <div class="radar-wrap" id="radar-wrap"></div>
+        <div class="g5" id="sg-grid"></div>
+        <!-- SD凡例 -->
+        <div class="sd-legend">
+          <div class="sd-leg-item"><div class="sd-swatch" style="background:#1D9E75"></div>5 目標標準より5%以上速い &nbsp;<b>Excellent</b></div>
+          <div class="sd-leg-item"><div class="sd-swatch" style="background:#378ADD"></div>4 1〜5%速い &nbsp;<b>Great</b></div>
+          <div class="sd-leg-item"><div class="sd-swatch" style="background:#d4920a"></div>3 ±1%以内 &nbsp;<b>Good</b></div>
+          <div class="sd-leg-item"><div class="sd-swatch" style="background:#D86030"></div>2 1〜5%遅い &nbsp;<b>Keep going</b></div>
+          <div class="sd-leg-item"><div class="sd-swatch" style="background:#C03030"></div>1 5%以上遅い &nbsp;<b>Try harder</b></div>
+        </div>
+        </div>
+        <div style="margin-top:12px;display:flex;justify-content:flex-end">
+
+        </div>
+      </div>
+      <div class="card" id="chart-card">
+        <div class="stitle">局面タイム比較</div>
+        <div id="phase-chart"></div>
+        <div class="comp-legend" id="chart-legend" style="margin-top:8px;justify-content:center"></div>
+      </div>
+      <div class="card">
+        <div class="stitle">局面別詳細（目標タイム基準 乖離率）</div>
+        <div id="dr"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-hist" class="tab-pane">
+    <div class="card">
+      <div class="stitle">保存済み結果一覧</div>
+      <div id="hist-list"></div>
+    </div>
+    <div class="card" id="comp-card" style="display:none">
+      <div class="stitle">比較レーダーチャート</div>
+      <div class="comp-legend" id="comp-legend"></div>
+      <div class="radar-wrap" id="comp-radar-wrap"></div>
+      <div style="margin-top:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="stitle" style="margin-bottom:0">局面タイム比較（折線グラフ）</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:11px;color:#888">表示:</span>
+            <button id="comp-chart-abs" onclick="setCompChartMode('abs')" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:5px;cursor:pointer;border:1px solid #1D9E75;background:#1D9E75;color:#fff">絶対値</button>
+            <button id="comp-chart-diff" onclick="setCompChartMode('diff')" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:5px;cursor:pointer;border:1px solid #ccc;background:#fff;color:#888">差分</button>
+          </div>
+        </div>
+        <div id="comp-line-chart"></div>
+      </div>
+      <div style="margin-top:1rem"><div class="stitle">局面スコア比較</div><div id="comp-detail"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+var SL=["Try harder","Keep going","Good","Great","Excellent"];
+
+// 各種目のスプリット通過点ラベル（手動入力用）
+// スプリット[i] = 第i局面終了時点の通過タイム
+var SP_LABELS={
+  "50Fr" :["15m通過","25m通過","45m通過","50m (ゴール)"],
+  "100Fr":["15m通過","25m通過","45m通過","50m折返（1回目）","65m通過","75m通過","95m通過","100m (ゴール)"],
+  "200Fr":["15m通過","45m通過","50m折返（1回目）","65m通過","95m通過","100m折返（2回目）","115m通過","145m通過","150m折返（3回目）","165m通過","195m通過","200m (ゴール)"],
+  "100Fly":["15m通過","25m通過","45m通過","50m折返（1回目）","65m通過","75m通過","95m通過","100m (ゴール)"],
+  "200Fly":["15m通過","45m通過","50m折返（1回目）","65m通過","95m通過","100m折返（2回目）","115m通過","145m通過","150m折返（3回目）","165m通過","195m通過","200m (ゴール)"],
+  "100Ba":["15m通過","25m通過","45m通過","50m折返（1回目）","65m通過","75m通過","95m通過","100m (ゴール)"],
+  "200Ba":["15m通過","45m通過","50m折返（1回目）","65m通過","95m通過","100m折返（2回目）","115m通過","145m通過","150m折返（3回目）","165m通過","195m通過","200m (ゴール)"],
+  "100Br":["15m通過","25m通過","45m通過","50m折返（1回目）","65m通過","75m通過","95m通過","100m (ゴール)"],
+  "200Br":["15m通過","45m通過","50m折返（1回目）","65m通過","95m通過","100m折返（2回目）","115m通過","145m通過","150m折返（3回目）","165m通過","195m通過","200m (ゴール)"],
+  "200IM":["15m通過","45m通過","50m折返（1回目）","65m通過","95m通過","100m折返（2回目）","115m通過","145m通過","150m折返（3回目）","165m通過","195m通過","200m (ゴール)"],
+  "400Fr":["50m（1折返）","100m（2折返）","150m（3折返）","200m（4折返）","250m（5折返）","300m（6折返）","350m（7折返）","400m (ゴール)"],
+  "400IM":["50m（バタ→1折返）","100m（バタ→背2折返）","150m（背3折返）","200m（背→平4折返）","250m（平5折返）","300m（平→自6折返）","350m（自7折返）","400m (ゴール)"]
+};
+
+// スプリットタイム → 局面所要時間に変換
+function splitsToPhases(splits){
+  var phases=[];
+  for(var i=0;i<splits.length;i++){
+    phases.push(i===0 ? splits[0] : splits[i]-splits[i-1]);
+  }
+  return phases;
+}
+
+var WA_BASE={
+  LCM:{
+    M:{"50Fr":20.91,"100Fr":46.40,"200Fr":102.00,"400Fr":219.96,"800Fr":452.12,"1500Fr":870.67,
+       "100Ba":51.60,"200Ba":111.92,"100Br":56.88,"200Br":125.48,
+       "100Fly":49.45,"200Fly":110.34,"200IM":112.69,"400IM":242.50},
+    F:{"50Fr":23.61,"100Fr":51.71,"200Fr":112.23,"400Fr":234.18,"800Fr":484.12,"1500Fr":920.48,
+       "100Ba":57.13,"200Ba":123.14,"100Br":64.13,"200Br":137.55,
+       "100Fly":54.60,"200Fly":121.81,"200IM":125.70,"400IM":263.65}
+  },
+  SCM:{
+    M:{"50Fr":19.90,"100Fr":44.84,"200Fr":98.61,"400Fr":212.25,"800Fr":440.46,"1500Fr":846.88,
+       "100Ba":48.33,"200Ba":105.63,"100Br":55.28,"200Br":120.16,
+       "100Fly":47.71,"200Fly":106.85,"100IM":49.28,"200IM":108.88,"400IM":234.81},
+    F:{"50Fr":22.83,"100Fr":50.25,"200Fr":110.31,"400Fr":230.25,"800Fr":477.42,"1500Fr":908.24,
+       "100Ba":54.02,"200Ba":118.04,"100Br":62.36,"200Br":132.50,
+       "100Fly":52.71,"200Fly":119.32,"100IM":55.11,"200IM":121.63,"400IM":255.48}
+  }
+};
+
+function calcWAPoints(gender,event,timeS,course){
+  course=course||"LCM";
+  var base=WA_BASE[course]&&WA_BASE[course][gender]&&WA_BASE[course][gender][event];
+  if(!base||timeS<=0) return null;
+  return Math.floor(1000*Math.pow(base/timeS,3));
+}
+function pointsColor(p){
+  if(p>=1000) return "#1D9E75";
+  if(p>=900)  return "#378ADD";
+  if(p>=800)  return "#d4920a";
+  if(p>=700)  return "#D86030";
+  return "#888";
+}
+function pointsLabel(p){
+  if(p>=1000) return "World Record level";
+  if(p>=950)  return "World class";
+  if(p>=900)  return "International class";
+  if(p>=800)  return "National class";
+  if(p>=700)  return "Regional class";
+  return "";
+}
+
+var RL=["スタート","泳ぎ前半","ターン","泳ぎ後半","ゴールタッチ"];
+var SC=["","#C03030","#D86030","#d4920a","#378ADD","#1D9E75"];
+var COMP_COLORS=["#1D9E75","#378ADD","#D85A30","#7F77DD"];
+
+var DB={M:{},F:{}};
+DB.M["50Fr"]  ={p:["スタート15m","ストローク10m","ストローク20m","フィニッシュ5m"],a:[0.25396,0.21381,0.42261,0.10963],b:[-0.16242,-0.10456,0.42182,-0.15485],d:[0.669,0.841,0.891,0.529],r:[0,1,3,4],"sp":["15m通過", "25m通過", "45m通過", "フィニッシュ"]};
+DB.M["100Fr"] ={p:["スタート15m","ストローク10m","ストローク20m","ターン・イン5m","ターン・アウト15m","ストローク10m","ストローク20m","フィニッシュ5m"],a:[0.1175,0.07759,0.18229,0.037197,0.13869,0.112171,0.27904,0.05554],b:[-0.0555,1.12409,1.25223,0.992608,0.09781,-0.268295,-2.91967,-0.22327],d:[0.326,0.390,0.600,0.193,0.540,0.694,0.651,0.301],r:[0,1,1,2,2,3,3,4],"sp":["15m通過", "25m通過", "45m通過", "50m通過", "65m通過", "75m通過", "95m通過", "フィニッシュ"]};
+DB.M["200Fr"] ={p:["スタート15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","フィニッシュ5m"],a:[0.060734,0.05958,0.025607,0.045237,0.114429,0.019054,0.064854,0.17866,0.055317,0.092807,0.25418,0.029534],b:[-0.515429,9.92038,0.214475,2.489023,4.661874,1.049425,0.446118,-2.059,-2.889985,-2.584976,-10.21818,-0.513724],d:[0.398,0.249,0.372,0.405,0.675,0.203,0.546,0.771,0.694,0.729,0.789,0.423],r:[0,1,2,2,1,2,2,3,2,2,3,4]};
+DB.M["100Fly"]={p:["スタート15m","ストローク10m","ストローク20m","ターン・イン5m","ターン・アウト15m","ストローク10m","ストローク20m","フィニッシュ5m"],a:[0.10307,0.066663,0.15383,0.052961,0.15219,0.10786,0.26886,0.09458],b:[0.38566,1.797276,2.79471,-0.157318,-0.08826,-0.02852,-2.51559,-2.18796],d:[0.332,0.391,0.553,0.427,0.559,0.695,0.730,0.471],r:[0,1,1,2,2,3,3,4],"sp":["15m通過", "25m通過", "45m通過", "50m通過", "65m通過", "75m通過", "95m通過", "フィニッシュ"]};
+DB.M["200Fly"]={p:["スタート15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","フィニッシュ5m"],a:[0.057776,0.09934,0.020315,0.055475,0.10802,0.028383,0.072936,0.161555,0.02766,0.093529,0.23187,0.043137],b:[-0.583115,5.49626,0.396346,2.051394,5.64117,-0.458393,0.209461,-0.199383,-0.208419,-2.205686,-8.10785,-2.031784],d:[0.425,0.432,0.293,0.453,0.596,0.461,0.568,0.767,0.311,0.601,0.680,0.442],r:[0,1,2,2,1,2,2,3,2,2,3,4]};
+DB.M["100Ba"] ={p:["スタート15m","ストローク10m","ストローク20m","ターン・イン5m","ターン・アウト15m","ストローク10m","ストローク20m","フィニッシュ5m"],a:[0.09584,0.078776,0.18941,0.053043,0.16376,0.117071,0.24065,0.061435],b:[1.1932,1.265345,1.14258,0.209292,-1.75721,-0.510858,-1.0351,-0.507246],d:[0.525,0.644,0.801,0.539,0.663,0.844,0.835,0.618],r:[0,1,1,2,2,3,3,4],"sp":["15m通過", "25m通過", "45m通過", "50m通過", "65m通過", "75m通過", "95m通過", "フィニッシュ"]};
+DB.M["200Ba"] ={p:["スタート15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","フィニッシュ5m"],a:[0.047629,0.080333,0.024446,0.06524,0.112811,0.029203,0.069957,0.167047,0.046359,0.09329,0.2233,0.040428],b:[1.013348,8.5158,0.337696,-0.01041,5.669258,-0.157403,-0.370381,-0.555056,-2.123539,-3.15584,-7.2928,-1.870677],d:[0.412,0.631,0.381,0.584,0.673,0.277,0.501,0.805,0.293,0.532,0.774,0.344],r:[0,1,2,2,1,2,2,3,2,2,3,4]};
+DB.M["100Br"] ={p:["スタート15m","ストローク10m","ストローク20m","ターン・イン5m","ターン・アウト15m","ストローク10m","ストローク20m","フィニッシュ5m"],a:[0.11854,0.064064,0.14945,0.055538,0.13502,0.12935,0.27248,0.075558],b:[-0.53353,2.384394,3.67213,-0.397411,0.82371,-1.30576,-3.1591,-1.484437],d:[0.429,0.376,0.613,0.452,0.669,0.758,0.737,0.448],r:[0,1,1,2,2,3,3,4],"sp":["15m通過", "25m通過", "45m通過", "50m通過", "65m通過", "75m通過", "95m通過", "フィニッシュ"]};
+DB.M["200Br"] ={p:["スタート15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","フィニッシュ5m"],a:[0.04479,0.090083,0.01641,0.046814,0.120985,0.023286,0.064853,0.189947,0.03206,0.086897,0.2404,0.043474],b:[1.032238,8.190445,0.96943,3.178795,5.104193,0.175454,0.918388,-3.894076,-0.92249,-1.899209,-10.4186,-2.434564],d:[0.256,0.543,0.290,0.461,0.687,0.423,0.600,0.812,0.526,0.684,0.782,0.608],r:[0,1,2,2,1,2,2,3,2,2,3,4]};
+DB.M["200IM"] ={p:["スタート15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","フィニッシュ5m"],a:[0.050421,0.06722,0.019879,0.090476,0.19,0.03344,0.104924,0.2124,0.042594,0.064854,0.10772,0.016032],b:[0.05936,8.94141,0.365579,-2.389431,-3.70594,-1.006473,-3.082009,-3.8405,-1.696308,0.616236,4.92923,0.808868],d:[0.391,0.326,0.299,0.611,0.604,0.538,0.733,0.591,0.511,0.616,0.476,0.253],r:[0,1,2,2,1,2,2,3,2,2,3,4]};
+DB.M["400Fr"] ={p:["0～50m","50～100m","100～150m","150～200m","200～250m","250～300m","300～350m","350～400m"],a:[0.08179,0.08981,0.102332,0.108084,0.130805,0.146965,0.17093,0.16929],b:[7.79788,8.15529,5.696987,4.586488,-0.762937,-4.445416,-10.16743,-10.86087],d:[0.476637,0.612803,0.764122,0.811555,0.856278,0.868523,0.792114,0.677387],r:[0,1,1,1,3,3,3,4]};
+DB.M["400IM"] ={p:["0～50m","50～100m","100～150m","150～200m","200～250m","250～300m","300～350m","350～400m"],a:[0.070846,0.073833,0.1965,0.1802,0.13166,0.13998,0.10397,0.10301],b:[8.710709,12.090634,-17.16822,-13.54699,2.26707,0.70384,3.94582,2.99713],d:[0.510869,0.528256,0.728901,0.742894,0.531445,0.559259,0.535302,0.476657],r:[0,1,1,2,2,3,3,4]};
+DB.F["50Fr"]  ={p:["スタート15m","ストローク10m","ストローク20m","フィニッシュ5m"],a:[0.24016,0.2257,0.41436,0.11981],b:[0.40175,-0.449,0.5208,-0.4736],d:[0.598,0.857,0.872,0.598],r:[0,1,3,4],"sp":["15m通過", "25m通過", "45m通過", "フィニッシュ"]};
+DB.F["100Fr"] ={p:["スタート15m","ストローク10m","ストローク20m","ターン・イン5m","ターン・アウト15m","ストローク10m","ストローク20m","フィニッシュ5m"],a:[0.11966,0.095747,0.21202,0.032481,0.157415,0.11626,0.21566,0.050756],b:[0.04466,0.214152,-0.38943,1.410596,-0.893437,-0.55162,0.15346,0.011624],d:[0.478,0.662,0.798,0.253,0.785,0.807,0.765,0.434],r:[0,1,1,2,2,3,3,4],"sp":["15m通過", "25m通過", "45m通過", "50m通過", "65m通過", "75m通過", "95m通過", "フィニッシュ"]};
+DB.F["200Fr"] ={p:["スタート15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","フィニッシュ5m"],a:[0.063631,0.112771,0.016691,0.063536,0.14827,0.017893,0.075635,0.179417,0.028671,0.078434,0.19377,0.021281],b:[-0.708755,4.313446,1.341903,0.578198,0.96191,1.29532,-0.753429,-2.483804,0.077438,-0.995881,-4.04551,0.41917],d:[0.550,0.690,0.266,0.673,0.803,0.253,0.767,0.867,0.443,0.766,0.764,0.349],r:[0,1,2,2,1,2,2,3,2,2,3,4]};
+DB.F["100Fly"]={p:["スタート15m","ストローク10m","ストローク20m","ターン・イン5m","ターン・アウト15m","ストローク10m","ストローク20m","フィニッシュ5m"],a:[0.10821,0.067979,0.16459,0.07517,0.15455,0.114122,0.22962,0.08576],b:[0.42109,1.877222,2.4148,-1.51191,-0.19705,-0.424932,-0.59554,-1.98367],d:[0.359,0.417,0.636,0.358,0.675,0.728,0.684,0.418],r:[0,1,1,2,2,3,3,4],"sp":["15m通過", "25m通過", "45m通過", "50m通過", "65m通過", "75m通過", "95m通過", "フィニッシュ"]};
+DB.F["200Fly"]={p:["スタート15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","フィニッシュ5m"],a:[0.037697,0.092829,0.023549,0.041844,0.145349,0.01925,0.064957,0.190831,0.035217,0.0829,0.2297,0.03587],b:[2.32534,6.896183,0.079655,4.141921,1.322374,0.772313,1.24288,-4.259429,-1.219018,-1.00205,-8.94983,-1.35034],d:[0.263,0.573,0.420,0.490,0.774,0.246,0.710,0.855,0.532,0.710,0.823,0.423],r:[0,1,2,2,1,2,2,3,2,2,3,4]};
+DB.F["100Ba"] ={p:["スタート15m","ストローク10m","ストローク20m","ターン・イン5m","ターン・アウト15m","ストローク10m","ストローク20m","フィニッシュ5m"],a:[0.1399,0.07574,0.14278,0.064904,0.17527,0.106979,0.243,0.051403],b:[-1.1655,1.54357,4.08205,-0.484618,-2.56998,0.010142,-1.46031,0.044609],d:[0.500,0.518,0.638,0.512,0.633,0.784,0.773,0.372],r:[0,1,1,2,2,3,3,4],"sp":["15m通過", "25m通過", "45m通過", "50m通過", "65m通過", "75m通過", "95m通過", "フィニッシュ"]};
+DB.F["200Ba"] ={p:["スタート15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","フィニッシュ5m"],a:[0.035103,0.09596,0.026529,0.058555,0.145444,0.032448,0.064355,0.187971,0.040505,0.082636,0.19853,0.031966],b:[3.144557,7.08972,0.140326,1.02986,1.657586,-0.55182,0.424006,-3.683887,-1.500602,-1.903794,-4.95468,-0.891265],d:[0.143,0.528,0.342,0.464,0.737,0.554,0.515,0.839,0.469,0.601,0.686,0.432],r:[0,1,2,2,1,2,2,3,2,2,3,4]};
+DB.F["100Br"] ={p:["スタート15m","ストローク10m","ストローク20m","ターン・イン5m","ターン・アウト15m","ストローク10m","ストローク20m","フィニッシュ5m"],a:[0.116156,0.062214,0.15396,0.063392,0.13322,0.116312,0.28959,0.065158],b:[-0.008868,2.779014,3.66501,-0.988608,1.05225,-0.616023,-4.84646,-1.036325],d:[0.579,0.401,0.733,0.579,0.734,0.817,0.873,0.607],r:[0,1,1,2,2,3,3,4],"sp":["15m通過", "25m通過", "45m通過", "50m通過", "65m通過", "75m通過", "95m通過", "フィニッシュ"]};
+DB.F["200Br"] ={p:["スタート15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","フィニッシュ5m"],a:[0.033839,0.10185,0.020168,0.047971,0.133863,0.028732,0.0717,0.183548,0.034107,0.078176,0.22304,0.04301],b:[3.202577,7.164,0.562791,3.432635,3.588549,-0.579638,0.09535,-3.521184,-1.333582,-0.779607,-9.16093,-2.67097],d:[0.301,0.618,0.233,0.613,0.838,0.642,0.737,0.924,0.632,0.750,0.853,0.685],r:[0,1,2,2,1,2,2,3,2,2,3,4]};
+DB.F["200IM"] ={p:["スタート15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","ターン・イン5m","ターン・アウト15m","ストローク30m","フィニッシュ5m"],a:[0.043493,0.07448,0.032812,0.065413,0.16009,0.018021,0.101616,0.26712,0.05523,0.05273,0.11939,0.009619],b:[1.270953,8.86875,-1.29619,0.923485,-0.02065,1.023686,-2.709542,-11.78094,-3.56111,2.20257,3.36545,1.713525],d:[0.338,0.359,0.386,0.508,0.506,0.230,0.618,0.661,0.486,0.450,0.522,0.093],r:[0,1,2,2,1,2,2,3,2,2,3,4]};
+DB.F["400Fr"] ={p:["0～50m","50～100m","100～150m","150～200m","200～250m","250～300m","300～350m","350～400m"],a:[0.08093,0.090391,0.116271,0.115382,0.13862,0.138932,0.15916,0.16031],b:[8.8415,8.82047,2.694292,3.123841,-2.87811,-2.828575,-8.23687,-9.53655],d:[0.541061,0.6023,0.769872,0.837799,0.899402,0.864157,0.791817,0.684041],r:[0,1,1,1,3,3,3,4]};
+DB.F["400IM"] ={p:["0～50m","50～100m","100～150m","150～200m","200～250m","250～300m","300～350m","350～400m"],a:[0.0696,0.08628,0.1319,0.13212,0.18305,0.18997,0.10328,0.10378],b:[10.52131,10.00764,-0.5718,-1.44163,-11.78444,-13.3043,3.94425,2.62896],d:[0.450827,0.41641,0.489244,0.535906,0.678416,0.722928,0.564578,0.501479],r:[0,1,1,2,2,3,3,4]};
+
+function getPD(){ return DB[document.getElementById("sg").value][document.getElementById("se").value]; }
+function getT() { var v=parseFloat(document.getElementById("st").value); return isNaN(v)?0:v; }
+function getAT(){ var v=parseFloat(document.getElementById("at").value); return isNaN(v)||v<=0?getT():v; }
+function getFPS(){ var v=parseFloat(document.getElementById("fps-val").value); return (isNaN(v)||v<=0)?60:v; }
+function computeStd(pd,T){ var s=[]; for(var i=0;i<pd.a.length;i++) s.push(pd.a[i]*T+pd.b[i]); return s; }
+
+function buildInputs(){
+  var pd=getPD(),T=getT(),sv=computeStd(pd,T);
+  var ev=document.getElementById("se").value;
+  var spLabels=SP_LABELS[ev]||pd.p;
+  var svCum=[],acc=0;
+  for(var i=0;i<sv.length;i++){ acc+=sv[i]; svCum.push(acc); }
+  var div=document.getElementById("pi"); div.innerHTML="";
+
+  // ヘッダー
+  var hdr=document.createElement("p");
+  hdr.style.cssText="font-size:11px;color:#888;margin-bottom:6px";
+  hdr.textContent="通過タイム（スタートからの経過時間・秒）を入力してください";
+  div.appendChild(hdr);
+
+  var n=pd.p.length;
+  var g=document.createElement("div");
+  g.style.cssText="display:grid;grid-template-columns:repeat("+n+",minmax(0,1fr));gap:8px";
+
+  for(var i=0;i<n;i++){
+    var w=document.createElement("div"); w.className="ig";
+    // 通過ポイントラベル
+    var lbl=document.createElement("label");
+    lbl.style.cssText="font-size:11px;color:#555;font-weight:600";
+    lbl.textContent=spLabels[i];
+    // 局面名サブラベル
+    var sub=document.createElement("span");
+    sub.style.cssText="font-size:10px;color:#aaa;display:block;margin-bottom:2px";
+    sub.textContent="("+pd.p[i]+")";
+    // 通過時間入力欄
+    var inp=document.createElement("input"); inp.type="number"; inp.id="pi"+i;
+    inp.placeholder=svCum[i].toFixed(2); inp.step="0.01";
+    // 局面所要時間の表示欄
+    var dur=document.createElement("div");
+    dur.id="dur"+i;
+    dur.style.cssText="font-size:11px;color:#378ADD;margin-top:3px;min-height:16px;font-weight:600";
+    dur.title="局面所要時間";
+    w.appendChild(lbl); w.appendChild(sub); w.appendChild(inp); w.appendChild(dur);
+    g.appendChild(w);
+  }
+  div.appendChild(g);
+
+  // 入力変更時に局面所要時間をリアルタイム更新
+  for(var i=0;i<n;i++){
+    (function(idx){
+      document.getElementById("pi"+idx).addEventListener("input", function(){
+        updateDurations();
+      });
+    })(i);
+  }
+  updateDurations();
+}
+
+function updateDurations(){
+  var pd=getPD(),n=pd.p.length;
+  var sv=computeStd(pd,getT());
+  // 標準値の累積スプリット
+  var svCum=[],acc=0;
+  for(var i=0;i<n;i++){ acc+=sv[i]; svCum.push(acc); }
+
+  for(var i=0;i<n;i++){
+    var el=document.getElementById("pi"+i);
+    var dur=document.getElementById("dur"+i);
+    if(!el||!dur) continue;
+
+    var v=parseFloat(el.value);
+    var hasVal=(!isNaN(v)&&v>0);
+
+    // 前の入力値を取得（なければ標準累積値）
+    var prevVal=0;
+    if(i>0){
+      var elPrev=document.getElementById("pi"+(i-1));
+      var vPrev=elPrev?parseFloat(elPrev.value):NaN;
+      prevVal=(!isNaN(vPrev)&&vPrev>0)?vPrev:svCum[i-1];
+    }
+
+    if(hasVal){
+      var lap=v-prevVal;
+      var isErr=lap<=0;
+      var splitStr='<span style="color:#555">Split: <b>'+v.toFixed(2)+'s</b></span>';
+      var lapStr=isErr
+        ? '<span style="color:#C03030">Lap: ※順序エラー</span>'
+        : '<span style="color:#1D9E75">Lap: <b>'+lap.toFixed(2)+'s</b></span>';
+      dur.innerHTML=splitStr+'<br>'+lapStr;
+    } else {
+      // 未入力時：標準値をグレーで表示
+      var stdSplit=svCum[i];
+      var stdLap=sv[i];
+      dur.innerHTML='<span style="color:#bbb">Split: '+stdSplit.toFixed(2)+'s</span>'
+        +'<br><span style="color:#bbb">Lap: '+stdLap.toFixed(2)+'s</span>';
+    }
+  }
+}
+function updatePlaceholders(){
+  var pd=getPD(),T=getT(),sv=computeStd(pd,T);
+  var acc=0;
+  for(var i=0;i<pd.p.length;i++){
+    acc+=sv[i];
+    var el=document.getElementById("pi"+i);
+    if(el) el.placeholder=acc.toFixed(2);
+  }
+}
+function clearInputs(){
+  var pd=getPD();
+  for(var i=0;i<pd.p.length;i++){ var el=document.getElementById("pi"+i); if(el){el.value="";el.classList.remove("filled");} }
+  document.getElementById("result-area").style.display="none";
+  document.getElementById("at").value="";
+  updateDurations();
+  document.getElementById("csv-file").value="";
+  document.getElementById("csv-fname").textContent="未選択";
+  document.getElementById("csv-status").innerHTML="";
+  document.getElementById("lane-sel-wrap").style.display="none";
+  window._csvRows=null;
+  window._selectedLaneIdx=null;
+}
+function clearCSV(){
+  clearInputs();
+  document.getElementById("csv-file").value="";
+  document.getElementById("csv-fname").textContent="未選択";
+  document.getElementById("csv-status").innerHTML="";
+  document.getElementById("lane-sel-wrap").style.display="none";
+  window._csvRows=null;
+}
+function setStatus(html){
+  var el=document.getElementById("csv-status");
+  el.innerHTML=html;
+  if(html) el.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+// タブ
+function showTab(id,btn){
+  document.querySelectorAll(".tab-pane").forEach(function(el){el.classList.remove("active");});
+  document.querySelectorAll(".tab-btn").forEach(function(el){el.classList.remove("active");});
+  document.getElementById(id).classList.add("active"); btn.classList.add("active");
+  if(id==="tab-hist") renderHistory();
+}
+
+// ---- Zスコアによる評価 ----
+// SD = Δ / 1.96  (Δは95%信頼限界)
+// z = (std - actual) / SD  正=標準より速い
+// z >= 2  → 5（とても優れている）
+// 1<=z<2  → 4（優れている）
+// -1<z<1  → 3（標準）
+// -2<z<=-1→ 2（あと少し）
+// z<=-2   → 1（がんばろう）
+function calcPct(actual,stdTarget){
+  if(stdTarget<=0) return 0;
+  return (stdTarget-actual)/stdTarget*100;
+}
+function pctToScore(pct){
+  if(pct >  5.0) return 5;
+  if(pct >= 1.0) return 4;
+  if(pct > -1.0) return 3;
+  if(pct > -5.0) return 2;
+  return 1;
+}
+
+function avgScore(arr){
+  if(!arr.length) return null;
+  var s=0; for(var i=0;i<arr.length;i++) s+=arr[i];
+  return Math.round(s/arr.length);
+}
+
+// CSV
+window._csvRows=null;
+function framesToTimes(frames,fps){ var t=[]; for(var i=1;i<frames.length;i++) t.push((frames[i]-frames[i-1])/fps); return t; }
+
+document.getElementById("csv-file").addEventListener("change",function(e){
+  var file=e.target.files[0]; if(!file) return;
+  document.getElementById("csv-fname").textContent=file.name;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var buf=ev.target.result;
+      var text;
+      try{ text=new TextDecoder("utf-8",{fatal:true}).decode(buf); }
+      catch(e1){ try{ text=new TextDecoder("shift-jis").decode(buf); }catch(e2){ text=new TextDecoder("utf-8").decode(buf); } }
+      text=text.replace(/^\uFEFF/,"");
+      var lines=text.split(/\r?\n/).filter(function(l){return l.trim()!=="";});
+      if(!lines.length){ setStatus('<span class="csv-err">データが見つかりません</span>'); return; }
+      var headers=lines[0].split(",").map(function(h){return h.trim();});
+      var lH=headers.map(function(h){return h.toLowerCase();});
+      var frameIdxs=[]; for(var j=0;j<lH.length;j++) if(/^frame\d+$/i.test(lH[j])) frameIdxs.push(j);
+      var startIdx=lH.indexOf("start"), labelIdx=lH.indexOf("label");
+      if(startIdx>=0 && frameIdxs.length>0){
+        var rows=[];
+        for(var i=1;i<lines.length;i++){
+          var cols=lines[i].split(",").map(function(c){return c.trim();});
+          var sf=parseInt(cols[startIdx]); if(isNaN(sf)) continue;
+          var frames=[sf]; var ok=true;
+          for(var j=0;j<frameIdxs.length;j++){
+            var fv=parseInt(cols[frameIdxs[j]]); if(isNaN(fv)){ok=false;break;} frames.push(fv);
+          }
+          if(!ok||frames.length<2) continue;
+          rows.push({lane:labelIdx>=0?cols[labelIdx]:String(i),frames:frames});
+        }
+        if(!rows.length){ setStatus('<span class="csv-err">有効なフレームデータが見つかりません</span>'); return; }
+        window._csvRows=rows;
+        window._selectedLaneIdx=null;
+        var fps=getFPS();
+        if(rows.length===1){
+          window._selectedLaneIdx=0;
+          var ok=applyFrameRow(rows[0],fps);
+          // applyFrameRowが失敗した場合はエラーメッセージがすでにセットされているので上書きしない
+          if(ok) setStatus('<span class="csv-ok">レーン '+rows[0].lane+' を自動適用（fps='+fps+'）</span>');
+          document.getElementById("lane-sel-wrap").style.display="none";
+        } else {
+          buildLaneSel(rows);
+          setStatus('<span class="csv-warn">'+rows.length+'レーン分のデータがあります。レーンを選択してください。</span>');
+        }
+      } else {
+        var map={}; for(var i=0;i<lines.length;i++){ var cols=lines[i].split(","); if(cols.length<2) continue; var v=parseFloat(cols[cols.length-1]); if(!isNaN(v)) map[cols[0].trim()]=v; }
+        if(!Object.keys(map).length){ setStatus('<span class="csv-err">読み取れる形式ではありません</span>'); return; }
+        var pd=getPD(); var matched=0,unmatched=[];
+        for(var i=0;i<pd.p.length;i++){
+          var el=document.getElementById("pi"+i);
+          if(map[pd.p[i]]!==undefined){el.value=map[pd.p[i]].toFixed(2);el.classList.add("filled");matched++;}
+          else{el.classList.remove("filled");unmatched.push(pd.p[i]);}
+        }
+        var msg=matched?'<span class="csv-ok">'+matched+'/'+pd.p.length+'局面を読み込みました</span>':'<span class="csv-err">局面名が一致しませんでした</span>';
+        if(unmatched.length) msg+=' <span class="csv-warn">未一致: '+unmatched.join("、")+'</span>';
+        setStatus(msg);
+      }
+    }catch(err){ setStatus('<span class="csv-err">エラー: '+err.message+'</span>'); }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function applyFrameRow(row,fps){
+  var pd=getPD(), phaseTimes=framesToTimes(row.frames,fps);
+  if(phaseTimes.length!==pd.p.length){ setStatus('<span class="csv-err">局面数が一致しません（CSV: '+phaseTimes.length+'局面 ／ 選択中の種目: '+pd.p.length+'局面）<br>→ 正しい<b>性別・種目</b>を選択してCSVを再度読み込むか、<b>fps</b>を確認してください</span>'); return false; }
+  var total=(row.frames[row.frames.length-1]-row.frames[0])/fps;
+  document.getElementById("at").value=total.toFixed(2);
+  // CSVから読んだ局面時間を累積スプリットタイムに変換して入力欄に表示
+  var cum=0;
+  for(var i=0;i<pd.p.length;i++){
+    cum+=phaseTimes[i];
+    var el=document.getElementById("pi"+i);
+    if(!el){ setStatus('<span class="csv-err">入力欄が見つかりません。ページを再読込してください。</span>'); return false; }
+    el.value=cum.toFixed(2);
+    el.classList.add("filled");
+  }
+  updateDurations();
+  return true;
+}
+function buildLaneSel(rows){
+  var list=document.getElementById("lane-list"); list.innerHTML="";
+  for(var i=0;i<rows.length;i++){
+    (function(row,laneIdx){
+      var fps0=getFPS();
+      var total=(row.frames[row.frames.length-1]-row.frames[0])/fps0;
+      var btn=document.createElement("button"); btn.className="lane-item";
+      btn.textContent="レーン "+row.lane+" ("+total.toFixed(2)+"s)";
+      btn.onclick=function(){
+        var fps=getFPS();
+        var tot=(row.frames[row.frames.length-1]-row.frames[0])/fps;
+        document.querySelectorAll(".lane-item").forEach(function(b){b.classList.remove("active");});
+        this.classList.add("active");
+        window._selectedLaneIdx=laneIdx;
+        if(applyFrameRow(row,fps)) setStatus('<span class="csv-ok">レーン '+row.lane+' を適用（fps='+fps+'、'+tot.toFixed(2)+'s）</span>');
+      };
+      list.appendChild(btn);
+    })(rows[i],i);
+  }
+  document.getElementById("lane-sel-wrap").style.display="block";
+}
+
+// 評価実行
+var _lastResult=null;
+
+function evaluate(){
+  try{
+    var pd=getPD(), T=getT();
+    if(T<=0){alert("目標タイムを入力してください");return;}
+    var svTarget=computeStd(pd,T);   // 目標タイム基準の標準値
+
+    // ① まずsplitsを読み取る（atより先に）
+    var splits=[], splitOk=true;
+    var svTgtCum=[], acc0=0;
+    for(var i=0;i<svTarget.length;i++){ acc0+=svTarget[i]; svTgtCum.push(acc0); }
+    for(var i=0;i<pd.p.length;i++){
+      var el=document.getElementById("pi"+i), v=parseFloat(el.value);
+      splits.push(isNaN(v)?svTgtCum[i]:v);  // 未入力時は目標タイム標準値で補完
+    }
+    // 単調増加チェック
+    for(var i=1;i<splits.length;i++){
+      if(splits[i]<=splits[i-1]){ splitOk=false; break; }
+    }
+    if(!splitOk){ alert("通過タイムが単調増加になっていません。入力値を確認してください。"); return; }
+    var times=splitsToPhases(splits);
+
+    // ② at欄が空なら最後のsplit（ゴールタイム）を自動セット
+    var atEl=document.getElementById("at");
+    if(!atEl.value){ atEl.value=splits[splits.length-1].toFixed(2); }
+
+    // ③ ATをat欄から取得（②の後なので正しい実績タイムが使われる）
+    var AT=getAT();
+    var svActual=computeStd(pd,AT);  // 実績タイム基準の標準値（Zスコア用）
+
+    // 乖離率（%）計算（目標タイム基準）
+    var pctScores=[], scores=[];
+    for(var i=0;i<pd.p.length;i++){
+      var pct=calcPct(times[i],svTarget[i]);
+      pctScores.push(pct);
+      scores.push(pctToScore(pct));
+    }
+
+    var grpS=[[],[],[],[],[]],grpT=[[],[],[],[],[]],grpSv=[[],[],[],[],[]],grpPct=[[],[],[],[],[]],grpStg=[[],[],[],[],[]];
+    for(var i=0;i<pd.r.length;i++){
+      grpS[pd.r[i]].push(scores[i]); grpT[pd.r[i]].push(times[i]);
+      grpSv[pd.r[i]].push(svActual[i]); grpPct[pd.r[i]].push(pctScores[i]);
+      grpStg[pd.r[i]].push(svTarget[i]);
+    }
+    function grpIdx(ri,ji,pd){ return ji; }
+    var rD=[]; for(var i=0;i<5;i++) rD.push(avgScore(grpS[i]));
+    var rv=[],rh=[]; for(var i=0;i<5;i++){rv.push(rD[i]!==null?rD[i]:3);rh.push(rD[i]!==null);}
+
+    _lastResult={gender:document.getElementById("sg").value,event:document.getElementById("se").value,
+      totalTime:T,memo:document.getElementById("memo").value,scores:rv,hasData:rh,
+      times:times.map(function(t){return parseFloat(t.toFixed(2));}),
+      stdVals:svActual.map(function(s){return parseFloat(s.toFixed(2));}),
+      stdTarget:svTarget.map(function(s){return parseFloat(s.toFixed(2));}),
+      actualTotal:AT, targetTotal:T, course:course, waPoints:waP,
+      phaseScores:scores,phases:pd.p,radarScores:rD,pctScores:pctScores};
+
+    document.getElementById("result-area").style.display="block";
+
+    // World Aquatics Swimming Points (P = 1000 * (B/T)^3, 小数点以下切り捨て)
+    var course=document.getElementById("course").value;
+    var waP=calcWAPoints(document.getElementById("sg").value,document.getElementById("se").value,AT,course);
+    var waPtarget=calcWAPoints(document.getElementById("sg").value,document.getElementById("se").value,T,course);
+    var waWrap=document.getElementById("wa-points-wrap");
+    if(waP!==null){
+      waWrap.style.display="block";
+      var pEl=document.getElementById("wa-points-val");
+      pEl.textContent=waP;
+      pEl.style.color=pointsColor(waP);
+      document.getElementById("wa-points-label").textContent=pointsLabel(waP);
+      document.getElementById("wa-points-label").style.color=pointsColor(waP);
+      var gKey=document.getElementById("sg").value;
+      var ev=document.getElementById("se").value;
+      var base=WA_BASE[course]&&WA_BASE[course][gKey]&&WA_BASE[course][gKey][ev];
+      var tgtStr=waPtarget!==null?"　目標タイム → "+waPtarget+" pts":"";
+      document.getElementById("wa-points-wr").textContent="基準タイム(WR相当): "+base+"s = 1000pts"+tgtStr;
+    } else {
+      waWrap.style.display="none";
+    }
+    document.getElementById("radar-wrap").innerHTML=buildRadarSVG([{vals:rv,hasData:rh,color:"#1D9E75",alpha:0.20}],true);
+
+    // スコアカード
+    var h="";
+    for(var i=0;i<5;i++){
+      var s=rD[i];
+      if(s===null){h+='<div class="sc"><div class="lb">'+RL[i]+'</div><div class="nm" style="color:#ccc">N/A</div><div class="tv">50m種目</div></div>';continue;}
+      var t=0,ts=0,pa=0,tg=0;
+      for(var j=0;j<grpT[i].length;j++){t+=grpT[i][j];ts+=grpSv[i][j];pa+=grpPct[i][j];tg+=grpStg[i][j];}
+      var avgPct=(pa/grpPct[i].length);
+      var improv=t-tg;  // 実績-目標標準: 正=短縮必要, 負=余裕
+      var improvStr=(improv>0?"▲"+improv.toFixed(2)+"s短縮必要":improv===0?"達成":"▼"+Math.abs(improv).toFixed(2)+"s余裕");
+      var improvCol=improv>0?"#C03030":improv===0?"#1D9E75":"#378ADD";
+      h+='<div class="sc"><div class="lb">'+RL[i]+'</div>'
+       +'<div class="nm n'+s+'">'+s+'</div>'
+       +'<div class="tv">'+t.toFixed(2)+'s<br>目標標準'+tg.toFixed(2)+'s<br>'+(avgPct>=0?"+":"")+avgPct.toFixed(1)+'%</div>'
+       +'<span class="bx b'+s+'">'+SL[s-1]+'</span>'
+       +'<div style="font-size:10px;margin-top:4px;font-weight:700;color:'+improvCol+'">'+improvStr+'</div>'
+       +'</div>';
+    }
+    document.getElementById("sg-grid").innerHTML=h;
+
+    // 局面別詳細（Zスコアバー付き）
+    var dh="";
+    dh+='<div style="display:grid;grid-template-columns:140px 1fr 1fr 1fr;gap:0;font-size:11px;font-weight:700;color:#999;padding:4px 0;border-bottom:2px solid #eee">'
+      +'<span>局面</span><span style="text-align:center">実績 / 標準（実績）→ Zスコア</span><span style="text-align:center">評価</span><span style="text-align:center">実績標準 / 改善必要量</span>'
+      +'</div>';
+    for(var i=0;i<pd.p.length;i++){
+      var s=scores[i], pct=pctScores[i];
+      var needImprov=times[i]-svTarget[i];
+      var pctDisp=(pct>=0?"+":"")+pct.toFixed(1)+'%';
+      var pctClamped=Math.max(-10,Math.min(10,pct));
+      var barPct=Math.abs(pctClamped)/10*50;
+      var barLeft=pctClamped>=0?"50%":(50-barPct)+"%";
+      var barColor=SC[s];
+      var improvColor=needImprov>0?"#C03030":needImprov===0?"#1D9E75":"#378ADD";
+      var improvLabel=needImprov>0?("▲"+needImprov.toFixed(2)+"s 短縮必要"):needImprov===0?"達成":("▼"+Math.abs(needImprov).toFixed(2)+"s 余裕");
+      dh+='<div class="dr" style="display:grid;grid-template-columns:140px 1fr 1fr 1fr;gap:4px;align-items:center">'
+        +'<span style="color:#555;font-size:12px;font-weight:600">'+pd.p[i]+'</span>'
+        +'<span style="font-size:11px">'
+        +  '<span style="color:#222">'+times[i].toFixed(2)+'s</span>'
+        +  ' / <span style="color:#888">目標標準 '+svTarget[i].toFixed(2)+'s</span>'
+        +  '<br><div class="zbar-wrap" style="max-width:120px;margin:2px 0">'
+        +  '<div class="zbar-center"></div>'
+        +  '<div class="zbar-fill" style="left:'+barLeft+';width:'+barPct+'%;background:'+barColor+';opacity:0.7"></div>'
+        +  '</div>'
+        +  '<span style="color:'+barColor+';font-weight:700">Z='+pctDisp+'</span>'
+        +'</span>'
+        +'<span><span class="bx b'+s+'">'+s+' '+SL[s-1]+'</span></span>'
+        +'<span style="font-size:11px">'
+        +  '<span style="color:#888">実績標準 '+svActual[i].toFixed(2)+'s</span><br>'
+        +  '<span style="font-weight:700;color:'+improvColor+'">'+improvLabel+'</span>'
+        +'</span>'
+        +'</div>';
+    }
+    document.getElementById("dr").innerHTML=dh;
+    drawPhaseChart(pd.p, times, svActual, svTarget);
+  }catch(e){alert("エラー: "+e.message);}
+}
+
+// レーダーSVG
+function hexToRGB(hex){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return r+","+g+","+b;}
+function buildRadarSVG(datasets,showTicks){
+  var cx=255,cy=215,R=120,LR=175,n=5,PI=Math.PI;
+  function rad(i){return(PI*2/n)*i-PI/2;}
+  function px(i,v){return cx+R*(v/5)*Math.cos(rad(i));}
+  function py(i,v){return cy+R*(v/5)*Math.sin(rad(i));}
+  function lbx(i){return cx+LR*Math.cos(rad(i));}
+  function lby(i){return cy+LR*Math.sin(rad(i));}
+  var s="";
+  // グリッド（3=標準を強調）
+  for(var lv=1;lv<=5;lv++){
+    var pts=[]; for(var i=0;i<n;i++) pts.push(px(i,lv).toFixed(1)+","+py(i,lv).toFixed(1));
+    var col=lv===3?"#888":"#ddd",wid=lv===3?"1.8":"0.8",dash=lv===3?' stroke-dasharray="6,3"':"";
+    s+='<polygon points="'+pts.join(" ")+'" fill="none" stroke="'+col+'" stroke-width="'+wid+'"'+dash+'/>';
+  }
+  for(var i=0;i<n;i++) s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+px(i,5).toFixed(1)+'" y2="'+py(i,5).toFixed(1)+'" stroke="#ddd" stroke-width="0.8"/>';
+  for(var di=0;di<datasets.length;di++){
+    var ds=datasets[di],dpts=[];
+    for(var i=0;i<n;i++){var v=ds.hasData[i]?ds.vals[i]:3;dpts.push(px(i,v).toFixed(1)+","+py(i,v).toFixed(1));}
+    var rgb=hexToRGB(ds.color);
+    s+='<polygon points="'+dpts.join(" ")+'" fill="rgba('+rgb+','+ds.alpha+')" stroke="'+ds.color+'" stroke-width="2.2"/>';
+    for(var i=0;i<n;i++){
+      if(ds.hasData[i]){
+        var col2=SC[ds.vals[i]]||ds.color;
+        s+='<circle cx="'+px(i,ds.vals[i]).toFixed(1)+'" cy="'+py(i,ds.vals[i]).toFixed(1)+'" r="6" fill="'+col2+'" stroke="#fff" stroke-width="1.8"/>';
+      }
+    }
+  }
+  if(showTicks){
+    for(var lv=1;lv<=5;lv++){
+      var c2=lv===3?"#666":"#bbb",fw=lv===3?"bold":"normal";
+      s+='<text x="'+(px(0,lv)+6).toFixed(1)+'" y="'+(py(0,lv)+4).toFixed(1)+'" font-size="10" fill="'+c2+'" font-weight="'+fw+'" font-family="Arial">'+lv+'</text>';
+    }
+    s+='<text x="'+(cx+6)+'" y="'+(cy-R*3/5+4).toFixed(1)+'" font-size="9" fill="#888" font-family="Arial">標準</text>';
+  }
+  var anchors=["middle","start","start","end","end"];
+  for(var i=0;i<n;i++){
+    var ax=lbx(i).toFixed(1),anc=anchors[i];
+    s+='<text x="'+ax+'" y="'+(lby(i)-9).toFixed(1)+'" text-anchor="'+anc+'" font-size="13" font-weight="bold" fill="#333" font-family="Helvetica Neue,Arial,sans-serif">'+RL[i]+'</text>';
+  }
+  return '<svg width="510" height="430" viewBox="0 0 510 430" xmlns="http://www.w3.org/2000/svg">'+s+'</svg>';
+}
+
+// 履歴
+function getHistory(){try{return JSON.parse(localStorage.getItem("swim_history")||"[]");}catch(e){return[];}}
+function saveHistory(h){localStorage.setItem("swim_history",JSON.stringify(h));}
+function printResult(){
+  var sg=document.getElementById("sg").value==="M"?"男子":"女子";
+  var seEl=document.getElementById("se");
+  var ev=seEl.options[seEl.selectedIndex].text;
+  var T=getT(), AT=getAT();
+  var memo=document.getElementById("memo").value;
+  var course=document.getElementById("course").value;
+  var now=new Date();
+  var ds=now.getFullYear()+"/"+(now.getMonth()+1)+"/"+now.getDate();
+  var info=sg+" ／ "+ev;
+  info+=" 　目標: "+T.toFixed(2)+"s";
+  if(Math.abs(AT-T)>0.01) info+=" 　実績: "+AT.toFixed(2)+"s";
+  info+=" 　"+course;
+  if(memo) info+=" 　"+memo;
+  info+=" 　"+ds;
+  document.getElementById("ph-info").textContent=info;
+
+  // オーバーレイ表示
+  var ov=document.createElement("div");
+  ov.className="pdf-overlay";
+  ov.innerHTML='<div class="pdf-spinner"></div><div>PDF生成中...</div>';
+  document.body.appendChild(ov);
+
+  // 印刷用ヘッダーを一時表示
+  var ph=document.getElementById("print-header");
+  ph.style.display="block";
+
+  var target=document.getElementById("result-area");
+
+  // ===== SVGを先に画像変換（html2canvasはSVGを正しく描画できないため） =====
+  var svgReplacements=[];
+  target.querySelectorAll("svg").forEach(function(svg){
+    try{
+      // SVGにfont情報を埋め込む
+      var svgStr=new XMLSerializer().serializeToString(svg);
+      var b64=btoa(unescape(encodeURIComponent(svgStr)));
+      var dataUri="data:image/svg+xml;base64,"+b64;
+      var rect=svg.getBoundingClientRect();
+      var img=document.createElement("img");
+      img.src=dataUri;
+      img.style.cssText="width:"+rect.width+"px;height:"+rect.height+"px;display:block";
+      svg.parentNode.insertBefore(img,svg);
+      svg.style.display="none";
+      svgReplacements.push({svg:svg,img:img});
+    }catch(e){ /* SVG変換失敗は無視 */ }
+  });
+
+  // html2canvas でキャプチャ
+  html2canvas(target,{
+    scale:2, useCORS:true, logging:false,
+    allowTaint:true,
+    backgroundColor:"#ffffff",
+    windowWidth:Math.max(target.scrollWidth,860),
+    onclone:function(doc){
+      // クローン内のボタン類を非表示
+      doc.querySelectorAll("button,.savebtn,.evbtn,.clrbtn,.sd-legend").forEach(function(el){
+        el.style.display="none";
+      });
+      // ヘッダーを表示
+      var clonePh=doc.getElementById("print-header");
+      if(clonePh) clonePh.style.display="block";
+      // WAポイントを確実に表示
+      var wa=doc.getElementById("wa-points-wrap");
+      if(wa) wa.style.display="block";
+    }
+  }).then(function(canvas){
+    // SVGを元に戻す
+    svgReplacements.forEach(function(pair){
+      pair.svg.style.display="";
+      if(pair.img.parentNode) pair.img.parentNode.removeChild(pair.img);
+    });
+    ph.style.display="none";
+    var imgData=canvas.toDataURL("image/png",1.0);
+    var jsPDF=window.jspdf.jsPDF;
+    var pdf=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+    var pageW=210, pageH=297, margin=6;
+    var imgW=pageW-margin*2;
+    var imgH=(canvas.height/canvas.width)*imgW;
+    var usableH=pageH-margin*2;
+    // 1ページに収まる場合
+    if(imgH<=usableH){
+      pdf.addImage(imgData,"PNG",margin,margin,imgW,imgH);
+    } else {
+      // 複数ページ: 画像を切り出してページごとに配置
+      var pxPerMm=canvas.width/imgW;
+      var pxPerPage=usableH*pxPerMm;
+      var pages=Math.ceil(canvas.height/pxPerPage);
+      var tmpCanvas=document.createElement("canvas");
+      var tmpCtx=tmpCanvas.getContext("2d");
+      tmpCanvas.width=canvas.width;
+      for(var p=0;p<pages;p++){
+        var srcY=Math.round(p*pxPerPage);
+        var srcH=Math.min(pxPerPage, canvas.height-srcY);
+        tmpCanvas.height=srcH;
+        tmpCtx.clearRect(0,0,tmpCanvas.width,tmpCanvas.height);
+        tmpCtx.drawImage(canvas,0,-srcY);
+        var pageImg=tmpCanvas.toDataURL("image/png",1.0);
+        var pageH2=srcH/pxPerMm;
+        if(p>0) pdf.addPage();
+        pdf.addImage(pageImg,"PNG",margin,margin,imgW,pageH2);
+      }
+    }
+    // ファイル名生成
+    var fname="swimming_eval_"+sg+"_"+ev.replace(/[^a-zA-Z0-9　-鿿]/g,"_")+"_"+ds.replace(/\//g,"")+".pdf";
+    pdf.save(fname);
+    document.body.removeChild(ov);
+  }).catch(function(e){
+    // エラー時もSVGを復元
+    svgReplacements.forEach(function(pair){
+      pair.svg.style.display="";
+      if(pair.img.parentNode) pair.img.parentNode.removeChild(pair.img);
+    });
+    document.body.removeChild(ov);
+    ph.style.display="none";
+    alert("PDF生成エラー: "+e.message);
+  });
+}
+
+function drawPhaseChart(phases, times, svActual, svTarget){
+  var W=720, H=300, PL=48, PR=70, PT=24, PB=72;
+  var cW=W-PL-PR, cH=H-PT-PB;
+  var n=phases.length;
+
+  // Y軸範囲: 実測と目標標準の差が見えるよう、実データ中心にタイトに設定
+  var allVals=times.concat(svTarget);
+  var dMin=Math.min.apply(null,allVals), dMax=Math.max.apply(null,allVals);
+  var span=Math.max(dMax-dMin, 0.5);      // 最小スパン0.5s確保
+  var yPad=span*0.35;
+  var yMin=dMin-yPad, yMax=dMax+yPad;
+
+  function xp(i){ return PL + (i/(n-1))*cW; }
+  function yp(v){ return PT + (1-(v-yMin)/(yMax-yMin))*cH; }
+  function polyline(arr, color, dash, w){
+    var pts=arr.map(function(v,i){ return xp(i).toFixed(1)+','+yp(v).toFixed(1); }).join(' ');
+    return '<polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="'+(w||2)+'"'+(dash?' stroke-dasharray="'+dash+'"':'')+' stroke-linejoin="round"/>';
+  }
+  function dots(arr, color, r){
+    return arr.map(function(v,i){
+      return '<circle cx="'+xp(i).toFixed(1)+'" cy="'+yp(v).toFixed(1)+'" r="'+r+'" fill="'+color+'" stroke="#fff" stroke-width="1.2"/>';
+    }).join('');
+  }
+
+  var s='<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue,Arial,sans-serif">';
+
+  // Y軸グリッド（目盛り数を自動調整）
+  var yTicks=5;
+  for(var i=0;i<=yTicks;i++){
+    var yv=yMin+(yMax-yMin)*i/yTicks;
+    var ypos=yp(yv);
+    s+='<line x1="'+PL+'" y1="'+ypos.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+ypos.toFixed(1)+'" stroke="#eee" stroke-width="1"/>';
+    s+='<text x="'+(PL-4)+'" y="'+(ypos+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="#aaa">'+yv.toFixed(2)+'</text>';
+  }
+
+  // 軸線
+  s+='<line x1="'+PL+'" y1="'+PT+'" x2="'+PL+'" y2="'+(PT+cH)+'" stroke="#ccc" stroke-width="1"/>';
+  s+='<line x1="'+PL+'" y1="'+(PT+cH)+'" x2="'+(W-PR)+'" y2="'+(PT+cH)+'" stroke="#ccc" stroke-width="1"/>';
+
+  // 差分シェーディング（実測と目標標準の間を塗りつぶし）
+  var fillPts1=times.map(function(v,i){ return xp(i).toFixed(1)+','+yp(v).toFixed(1); }).join(' ');
+  var fillPts2=svTarget.slice().reverse().map(function(v,i){ return xp(n-1-i).toFixed(1)+','+yp(v).toFixed(1); }).join(' ');
+  s+='<polygon points="'+fillPts1+' '+fillPts2+'" fill="rgba(29,158,117,0.08)"/>';
+
+  // 折線（目標標準→実測）
+  s+=polyline(svTarget,'#bbb','6,3',1.5);
+  s+=polyline(times,'#1D9E75','',2.5);
+
+  // ドット
+  s+=dots(svTarget,'#ccc',3);
+  s+=dots(times,'#1D9E75',5);
+
+  // ===== 実測値ラベル + ±差分ラベル =====
+  times.forEach(function(v,i){
+    var tx=xp(i), ty=yp(v);
+    var anchor=i===0?'start':(i===n-1?'end':'middle');
+    var diff=v-svTarget[i];           // 正=遅い(悪), 負=速い(良)
+    var diffStr=(diff>=0?'+':'')+diff.toFixed(2)+'s';
+    var diffCol=diff>0.001?'#C03030':(diff<-0.001?'#1D9E75':'#888');
+    var aboveTarget=v<svTarget[i];    // 速い=グラフ上側
+
+    // 実測値（ドットの上か下）
+    var valDy=aboveTarget?-18:14;
+    s+='<text x="'+tx.toFixed(1)+'" y="'+(ty+valDy).toFixed(1)+'"'
+      +' text-anchor="'+anchor+'" font-size="9" font-weight="700" fill="#1D9E75">'
+      +v.toFixed(2)+'s</text>';
+
+    // ±差分ラベル（実測値の外側に追加）
+    var diffDy=aboveTarget?-30:26;
+    s+='<text x="'+tx.toFixed(1)+'" y="'+(ty+diffDy).toFixed(1)+'"'
+      +' text-anchor="'+anchor+'" font-size="9" font-weight="700" fill="'+diffCol+'">'
+      +diffStr+'</text>';
+
+    // 差分を示す縦線（実測点と目標標準点を繋ぐ）
+    var ty2=yp(svTarget[i]);
+    s+='<line x1="'+tx.toFixed(1)+'" y1="'+ty.toFixed(1)+'"'
+      +' x2="'+tx.toFixed(1)+'" y2="'+ty2.toFixed(1)+'"'
+      +' stroke="'+diffCol+'" stroke-width="1" stroke-dasharray="2,2" opacity="0.6"/>';
+  });
+
+  // X軸ラベル
+  phases.forEach(function(p,i){
+    var tx=xp(i);
+    var anchor=i===0?'start':(i===n-1?'end':'middle');
+    var short=p.replace('ターン・','T-').replace('ストローク','Str').replace('スタート','Start').replace('フィニッシュ','Fin');
+    s+='<text x="'+tx.toFixed(1)+'" y="'+(PT+cH+16)+'" text-anchor="'+anchor+'" font-size="9" fill="#555">'+short+'</text>';
+  });
+
+  // Y軸ラベル
+  s+='<text x="11" y="'+(PT+cH/2)+'" text-anchor="middle" font-size="10" fill="#888"'
+    +' transform="rotate(-90 11 '+(PT+cH/2)+')">局面タイム (s)</text>';
+
+  // 右側に凡例をコンパクトに
+  var lx=W-PR+8, ly=PT+10;
+  s+='<circle cx="'+(lx+4)+'" cy="'+ly+'" r="4" fill="#1D9E75"/>'
+    +'<text x="'+(lx+10)+'" y="'+(ly+4)+'" font-size="9" fill="#333">実測</text>';
+  s+='<line x1="'+lx+'" y1="'+(ly+16)+'" x2="'+(lx+8)+'" y2="'+(ly+16)+'" stroke="#bbb" stroke-width="1.5" stroke-dasharray="4,2"/>'
+    +'<text x="'+(lx+10)+'" y="'+(ly+20)+'" font-size="9" fill="#333">目標標準</text>';
+  s+='<text x="'+lx+'" y="'+(ly+36)+'" font-size="8" fill="#C03030">+Xs 速い</text>';
+  s+='<text x="'+lx+'" y="'+(ly+48)+'" font-size="8" fill="#1D9E75">−Xs 遅い</text>';
+
+  s+='</svg>';
+
+  // ===== グラフ2: 0中心の差分グラフ =====
+  var W2=720, H2=260, PL2=52, PR2=70, PT2=30, PB2=72;
+  var cW2=W2-PL2-PR2, cH2=H2-PT2-PB2;
+
+  // 差分配列 diff[i] = times[i] - svTarget[i]（正=遅い、負=速い）
+  var diffs=times.map(function(v,i){ return svTarget[i] - v; });
+
+  // Y軸範囲: 0を中心に対称
+  var dAbsMax=Math.max.apply(null,diffs.map(Math.abs));
+  dAbsMax=Math.max(dAbsMax*1.4, 0.3);  // 最小0.3s確保
+  var d_yMin=-dAbsMax, d_yMax=dAbsMax;
+
+  function xp2(i){ return PL2+(i/(n-1))*cW2; }
+  function yp2(v){ return PT2+(1-(v-d_yMin)/(d_yMax-d_yMin))*cH2; }
+  var y0=yp2(0);  // 0ライン（標準）のy座標
+
+  var s2='<svg width="100%" viewBox="0 0 '+W2+' '+H2+'" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue,Arial,sans-serif">';
+
+  // 背景塗り分け（上=速い=緑、下=遅い=赤）
+  s2+='<rect x="'+PL2+'" y="'+PT2+'" width="'+cW2+'" height="'+(y0-PT2)+'" fill="rgba(29,158,117,0.04)"/>';
+  s2+='<rect x="'+PL2+'" y="'+y0+'" width="'+cW2+'" height="'+(PT2+cH2-y0)+'" fill="rgba(192,48,48,0.04)"/>';
+
+  // Y軸グリッド
+  var dTicks=4;
+  for(var i=0;i<=dTicks;i++){
+    var yv=d_yMin+(d_yMax-d_yMin)*i/dTicks;
+    var ypos=yp2(yv);
+    var isZero=Math.abs(yv)<0.001;
+    s2+='<line x1="'+PL2+'" y1="'+ypos.toFixed(1)+'" x2="'+(W2-PR2)+'" y2="'+ypos.toFixed(1)+'"'
+      +' stroke="'+(isZero?'#999':'#eee')+'" stroke-width="'+(isZero?1.5:1)+'"/>';
+    s2+='<text x="'+(PL2-4)+'" y="'+(ypos+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="'+(isZero?'#666':'#aaa')+'">'
+      +(isZero?'0':yv.toFixed(2))+'</text>';
+  }
+
+  // 軸線
+  s2+='<line x1="'+PL2+'" y1="'+PT2+'" x2="'+PL2+'" y2="'+(PT2+cH2)+'" stroke="#ccc" stroke-width="1"/>';
+  s2+='<line x1="'+PL2+'" y1="'+(PT2+cH2)+'" x2="'+(W2-PR2)+'" y2="'+(PT2+cH2)+'" stroke="#ccc" stroke-width="1"/>';
+
+  // 各点から0ラインへの縦棒（バー）
+  diffs.forEach(function(d,i){
+    var tx=xp2(i), ty=yp2(d);
+    var barColor=d>0?'#1D9E75':'#C03030';
+    var barH=Math.abs(ty-y0);
+    var barY=d>0?y0:ty;
+    if(barH>0.5){
+      s2+='<rect x="'+(tx-6)+'" y="'+barY.toFixed(1)+'" width="12" height="'+barH.toFixed(1)+'"'
+        +' fill="'+barColor+'" opacity="0.25" rx="2"/>';
+    }
+  });
+
+  // 折線
+  var pts2=diffs.map(function(d,i){ return xp2(i).toFixed(1)+','+yp2(d).toFixed(1); }).join(' ');
+  s2+='<polyline points="'+pts2+'" fill="none" stroke="#555" stroke-width="2" stroke-linejoin="round"/>';
+
+  // ドットと差分ラベル
+  diffs.forEach(function(d,i){
+    var tx=xp2(i), ty=yp2(d);
+    var dotCol=d>0.001?'#C03030':(d<-0.001?'#1D9E75':'#888');
+    var anchor=i===0?'start':(i===n-1?'end':'middle');
+    var dStr=(d>=0?'+':'')+d.toFixed(2)+'s';
+    // ラベルは速い(負)→上、遅い(正)→下
+    var lblDy=d>0?16:-8;
+
+    s2+='<circle cx="'+tx.toFixed(1)+'" cy="'+ty.toFixed(1)+'" r="5" fill="'+dotCol+'" stroke="#fff" stroke-width="1.5"/>';
+    s2+='<text x="'+tx.toFixed(1)+'" y="'+(ty+lblDy).toFixed(1)+'"'
+      +' text-anchor="'+anchor+'" font-size="9.5" font-weight="700" fill="'+dotCol+'">'+dStr+'</text>';
+  });
+
+  // 「標準」ラベル（0ライン上）
+  s2+='<text x="'+PL2+'" y="'+(y0-4)+'" font-size="9" fill="#666">← 標準</text>';
+  s2+='<text x="'+PL2+'" y="'+(y0+14)+'" font-size="9" fill="#C03030" opacity="0.8">  遅い（短縮必要）▼</text>';
+  s2+='<text x="'+PL2+'" y="'+(y0-6-10)+'" font-size="9" fill="#1D9E75" opacity="0.8">  速い（余裕あり）▲</text>';
+
+  // X軸ラベル
+  phases.forEach(function(p,i){
+    var tx=xp2(i);
+    var anchor=i===0?'start':(i===n-1?'end':'middle');
+    var short=p.replace('ターン・','T-').replace('ストローク','Str').replace('スタート','Start').replace('フィニッシュ','Fin');
+    s2+='<text x="'+tx.toFixed(1)+'" y="'+(PT2+cH2+16)+'" text-anchor="'+anchor+'" font-size="9" fill="#555">'+short+'</text>';
+  });
+
+  // Y軸ラベル
+  s2+='<text x="11" y="'+(PT2+cH2/2)+'" text-anchor="middle" font-size="10" fill="#888"'
+    +' transform="rotate(-90 11 '+(PT2+cH2/2)+')">差分 (s)</text>';
+
+  // 右側凡例
+  var lx2=W2-PR2+8, ly2=PT2+10;
+  s2+='<circle cx="'+(lx2+4)+'" cy="'+ly2+'" r="4" fill="#1D9E75"/>'
+    +'<text x="'+(lx2+10)+'" y="'+(ly2+4)+'" font-size="9" fill="#333">速い</text>';
+  s2+='<circle cx="'+(lx2+4)+'" cy="'+(ly2+18)+'" r="4" fill="#C03030"/>'
+    +'<text x="'+(lx2+10)+'" y="'+(ly2+22)+'" font-size="9" fill="#333">遅い</text>';
+
+  s2+='</svg>';
+
+  document.getElementById("phase-chart").innerHTML=s+'<div style="margin-top:16px;font-size:11px;color:#888;font-weight:600">目標標準との差分（0=標準・上=速い・下=遅い）</div>'+s2;
+
+  // 凡例
+  document.getElementById("chart-legend").innerHTML='';
+}
+
+function saveResult(){
+  if(!_lastResult){alert("先に評価を実行してください");return;}
+  var h=getHistory(),now=new Date();
+  var ds=now.getFullYear()+"/"+(now.getMonth()+1)+"/"+now.getDate()+" "+now.getHours()+":"+("0"+now.getMinutes()).slice(-2);
+  h.unshift(Object.assign({},_lastResult,{id:Date.now(),date:ds}));
+  if(h.length>30) h=h.slice(0,30);
+  saveHistory(h); alert("保存しました（"+ds+"）");
+}
+var _selComp=[];
+var _compChartMode='abs';
+function setCompChartMode(mode){
+  _compChartMode=mode;
+  var abs=document.getElementById('comp-chart-abs');
+  var diff=document.getElementById('comp-chart-diff');
+  if(abs&&diff){
+    var on='padding:3px 10px;font-size:11px;font-weight:600;border-radius:5px;cursor:pointer;border:1px solid #1D9E75;background:#1D9E75;color:#fff';
+    var off='padding:3px 10px;font-size:11px;font-weight:600;border-radius:5px;cursor:pointer;border:1px solid #ccc;background:#fff;color:#888';
+    abs.style.cssText=mode==='abs'?on:off;
+    diff.style.cssText=mode==='diff'?on:off;
+  }
+  renderComp();
+}
+function renderHistory(){
+  var h=getHistory(),div=document.getElementById("hist-list");
+  if(!h.length){div.innerHTML='<div class="no-hist">保存済みデータがありません。評価後「履歴に保存」を押してください。</div>';document.getElementById("comp-card").style.display="none";return;}
+  var html="";
+  for(var i=0;i<h.length;i++){
+    var e=h[i],isSel=_selComp.indexOf(e.id)>=0;
+    var dots=""; for(var j=0;j<5;j++){ var s=e.radarScores[j]; dots+='<div class="hscore" style="background:'+(s?SC[s]:"#ddd")+'">'+(s||"-")+'</div>'; }
+    html+='<div class="hist-item'+(isSel?" selected":"")+'">'
+      +'<div class="hist-date">'+e.date+'</div>'
+      +'<div class="hist-label">'+(e.memo||"(メモなし)")+'<span style="font-size:11px;color:#aaa;margin-left:6px">'+e.gender+'/'+e.event+'</span></div>'
+      +'<div class="hist-time">'+e.totalTime.toFixed(2)+'s'+(e.waPoints?' <span style="font-size:11px;font-weight:700;color:'+pointsColor(e.waPoints)+'">'+e.waPoints+'pts</span>':'')+'</div>'
+      +'<div class="hist-scores">'+dots+'</div>'
+      +'<div class="hist-btns">'
+      +'<button class="hist-btn comp" onclick="toggleComp('+e.id+')">'+(isSel?"比較解除":"比較追加")+'</button>'
+      +'<button class="hist-btn del" onclick="delEntry('+e.id+')">削除</button>'
+      +'</div></div>';
+  }
+  div.innerHTML=html; renderComp();
+}
+function toggleComp(id){
+  var idx=_selComp.indexOf(id);
+  if(idx>=0) _selComp.splice(idx,1);
+  else{ if(_selComp.length>=4){alert("最大4件まで");return;} _selComp.push(id); }
+  renderHistory();
+}
+function delEntry(id){
+  if(!confirm("削除しますか？"))return;
+  var idx=_selComp.indexOf(id); if(idx>=0) _selComp.splice(idx,1);
+  saveHistory(getHistory().filter(function(e){return e.id!==id;})); renderHistory();
+}
+function drawCompLineChart(entries){
+  var el=document.getElementById('comp-line-chart');
+  if(!el) return;
+  if(!entries||entries.length<2){el.innerHTML='';return;}
+  var sameEv=entries.every(function(e){return e.event===entries[0].event&&e.gender===entries[0].gender;});
+  if(!sameEv){
+    el.innerHTML='<p style="font-size:12px;color:#aaa;text-align:center;padding:12px">種目が異なるため折線グラフは表示できません</p>';
+    return;
+  }
+  var phases=entries[0].phases, n=phases.length;
+  var isDiff=(_compChartMode==='diff');
+  var baseStd=entries[0].stdTarget||entries[0].stdVals||[];
+  var W=680,H=260,PL=50,PR=120,PT=24,PB=68;
+  var cW=W-PL-PR,cH=H-PT-PB;
+  function xp(i){return PL+(i/(n-1))*cW;}
+  var allVals=[];
+  entries.forEach(function(e){
+    var vals=isDiff?e.times.map(function(t,i){return t-(baseStd[i]||0);}):e.times;
+    allVals=allVals.concat(vals);
+  });
+  if(!isDiff)allVals=allVals.concat(baseStd);
+  else allVals.push(0);
+  var yMin=Math.min.apply(null,allVals),yMax=Math.max.apply(null,allVals);
+  var span=Math.max(yMax-yMin,0.3),pad=span*0.3;
+  yMin=yMin-pad; yMax=yMax+pad;
+  function yp(v){return PT+(1-(v-yMin)/(yMax-yMin))*cH;}
+  var s='<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue,Arial,sans-serif">';
+  for(var gi=0;gi<=5;gi++){
+    var gv=yMin+(yMax-yMin)*gi/5,gy=yp(gv);
+    var isZ=isDiff&&Math.abs(gv)<0.005;
+    s+='<line x1="'+PL+'" y1="'+gy.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+gy.toFixed(1)+'" stroke="'+(isZ?'#aaa':'#eee')+'" stroke-width="'+(isZ?1.5:1)+'"/>';
+    s+='<text x="'+(PL-4)+'" y="'+(gy+4).toFixed(1)+'" text-anchor="end" font-size="9" fill="'+(isZ?'#555':'#aaa')+'">'+gv.toFixed(2)+'</text>';
+  }
+  s+='<line x1="'+PL+'" y1="'+PT+'" x2="'+PL+'" y2="'+(PT+cH)+'" stroke="#ccc" stroke-width="1"/>';
+  s+='<line x1="'+PL+'" y1="'+(PT+cH)+'" x2="'+(W-PR)+'" y2="'+(PT+cH)+'" stroke="#ccc" stroke-width="1"/>';
+  if(!isDiff&&baseStd.length){
+    var sp=baseStd.map(function(v,i){return xp(i).toFixed(1)+','+yp(v).toFixed(1);}).join(' ');
+    s+='<polyline points="'+sp+'" fill="none" stroke="#bbb" stroke-width="1.5" stroke-dasharray="5,3"/>';
+    baseStd.forEach(function(v,i){s+='<circle cx="'+xp(i).toFixed(1)+'" cy="'+yp(v).toFixed(1)+'" r="3" fill="#ccc"/>';});
+  } else if(isDiff){
+    var y0=yp(0);
+    s+='<text x="'+PL+'" y="'+(y0-4)+'" font-size="8" fill="#666">← 標準</text>';
+    s+='<text x="'+(PL+2)+'" y="'+(y0+12)+'" font-size="8" fill="#C03030" opacity="0.8">遅い▼</text>';
+    s+='<text x="'+(PL+2)+'" y="'+(y0-7)+'" font-size="8" fill="#1D9E75" opacity="0.8">速い▲</text>';
+  }
+  entries.forEach(function(entry,ei){
+    var col=COMP_COLORS[ei];
+    var dash=ei===0?'':'6,4';
+    var vals=isDiff?entry.times.map(function(t,i){return t-(baseStd[i]||0);}):entry.times;
+    var pts=vals.map(function(v,i){return xp(i).toFixed(1)+','+yp(v).toFixed(1);}).join(' ');
+    s+='<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="'+(ei===0?2.5:2)+'"'+(dash?' stroke-dasharray="'+dash+'"':'')+' stroke-linejoin="round"/>';
+    vals.forEach(function(v,i){
+      var tx=xp(i),ty=yp(v);
+      var anchor=i===0?'start':(i===n-1?'end':'middle');
+      var dy=(isDiff?v>0:v>=(baseStd[i]||v))?12:-7;
+      s+='<circle cx="'+tx.toFixed(1)+'" cy="'+ty.toFixed(1)+'" r="'+(ei===0?4.5:3.5)+'" fill="'+col+'" stroke="#fff" stroke-width="1.2"/>';
+      if(ei===0||entries.length===2){
+        s+='<text x="'+tx.toFixed(1)+'" y="'+(ty+dy).toFixed(1)+'" text-anchor="'+anchor+'" font-size="8" fill="'+col+'">'+v.toFixed(2)+'</text>';
+      }
+    });
+  });
+  phases.forEach(function(p,i){
+    var tx=xp(i),anchor=i===0?'start':(i===n-1?'end':'middle');
+    var short=p.replace('ターン・','T-').replace('ストローク','Str').replace('スタート','Start').replace('フィニッシュ','Fin');
+    s+='<text x="'+tx.toFixed(1)+'" y="'+(PT+cH+14)+'" text-anchor="'+anchor+'" font-size="8.5" fill="#555">'+short+'</text>';
+  });
+  s+='<text x="10" y="'+(PT+cH/2)+'" text-anchor="middle" font-size="9" fill="#888" transform="rotate(-90 10 '+(PT+cH/2)+')">'+(isDiff?'差分 (s)':'局面タイム (s)')+'</text>';
+  var lx=W-PR+10,ly=PT;
+  if(!isDiff){
+    s+='<line x1="'+lx+'" y1="'+(ly+6)+'" x2="'+(lx+16)+'" y2="'+(ly+6)+'" stroke="#bbb" stroke-width="1.5" stroke-dasharray="4,2"/>';
+    s+='<text x="'+(lx+19)+'" y="'+(ly+10)+'" font-size="8.5" fill="#888">目標標準</text>';
+    ly+=16;
+  }
+  entries.forEach(function(e,ei){
+    var col=COMP_COLORS[ei];
+    s+='<line x1="'+lx+'" y1="'+(ly+6)+'" x2="'+(lx+16)+'" y2="'+(ly+6)+'" stroke="'+col+'" stroke-width="2"'+(ei>0?' stroke-dasharray="5,3"':'')+'/>';
+    s+='<circle cx="'+(lx+8)+'" cy="'+(ly+6)+'" r="3" fill="'+col+'"/>';
+    var lbl=((e.memo||'記録'+(ei+1))+' '+e.totalTime.toFixed(2)+'s');
+    if(lbl.length>13)lbl=lbl.slice(0,13)+'…';
+    s+='<text x="'+(lx+19)+'" y="'+(ly+10)+'" font-size="8.5" fill="'+col+'">'+lbl+'</text>';
+    ly+=15;
+  });
+  s+='</svg>';
+  el.innerHTML=s;
+}
+function renderComp(){
+  if(_selComp.length<2){document.getElementById("comp-card").style.display="none";return;}
+  var h=getHistory(),entries=[];
+  for(var k=0;k<_selComp.length;k++) for(var i=0;i<h.length;i++) if(h[i].id===_selComp[k]){entries.push(h[i]);break;}
+  if(entries.length<2){document.getElementById("comp-card").style.display="none";return;}
+  document.getElementById("comp-card").style.display="block";
+  drawCompLineChart(entries);
+  var leg="";
+  for(var i=0;i<entries.length;i++) leg+='<span><span class="comp-dot" style="background:'+COMP_COLORS[i]+'"></span>'+(entries[i].memo||"記録"+(i+1))+' '+entries[i].totalTime.toFixed(2)+'s</span>';
+  document.getElementById("comp-legend").innerHTML=leg;
+  var ds=[];
+  for(var i=0;i<entries.length;i++) ds.push({vals:entries[i].scores,hasData:entries[i].hasData,color:COMP_COLORS[i],alpha:0.12});
+  document.getElementById("comp-radar-wrap").innerHTML=buildRadarSVG(ds,true);
+  var sameEvent=true;
+  for(var i=1;i<entries.length;i++) if(entries[i].event!==entries[0].event||entries[i].gender!==entries[0].gender) sameEvent=false;
+  var dh='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">';
+  dh+='<tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:left;border-bottom:1px solid #eee">局面</th>';
+  for(var i=0;i<entries.length;i++) dh+='<th style="padding:6px 8px;text-align:center;border-bottom:1px solid #eee"><span style="color:'+COMP_COLORS[i]+'">'+(entries[i].memo||"記録"+(i+1))+'<br>'+entries[i].totalTime.toFixed(2)+'s</span></th>';
+  dh+='</tr>';
+  if(sameEvent){
+    var phases=entries[0].phases;
+    for(var pi=0;pi<phases.length;pi++){
+      dh+='<tr><td style="padding:5px 8px;color:#555;border-bottom:1px solid #f2f2f2">'+phases[pi]+'</td>';
+      for(var i=0;i<entries.length;i++){
+        var s=entries[i].phaseScores[pi],t=entries[i].times[pi];
+        var pv=entries[i].pctScores?entries[i].pctScores[pi]:null;
+        var pStr=pv!==null?(pv>=0?"+":"")+pv.toFixed(1)+'%':"";
+        dh+='<td style="padding:5px 8px;text-align:center;border-bottom:1px solid #f2f2f2"><span class="bx b'+s+'">'+s+'</span><br><span style="font-size:11px;color:#aaa">'+t.toFixed(2)+'s'+(zStr?' '+pStr:'')+'</span></td>';
+      }
+      dh+='</tr>';
+    }
+  } else {
+    for(var j=0;j<5;j++){
+      dh+='<tr><td style="padding:5px 8px;color:#555;border-bottom:1px solid #f2f2f2">'+RL[j]+'</td>';
+      for(var i=0;i<entries.length;i++){ var s=entries[i].radarScores[j]; dh+='<td style="padding:5px 8px;text-align:center;border-bottom:1px solid #f2f2f2">'+(s?'<span class="bx b'+s+'">'+s+'</span>':'<span style="color:#ccc">N/A</span>')+'</td>'; }
+      dh+='</tr>';
+    }
+  }
+  dh+='</table></div>';
+  document.getElementById("comp-detail").innerHTML=dh;
+}
+
+document.getElementById("sg").addEventListener("change",function(){buildInputs();document.getElementById("result-area").style.display="none";});
+document.getElementById("se").addEventListener("change",function(){buildInputs();document.getElementById("result-area").style.display="none";});
+document.getElementById("st").addEventListener("input",updatePlaceholders);
+document.getElementById("at").addEventListener("input",function(){document.getElementById("result-area").style.display="none";});
+// fps変更時: ロード済みCSVを新fpsで自動再計算
+document.getElementById("fps-val").addEventListener("input",function(){
+  document.getElementById("result-area").style.display="none";
+  var rows=window._csvRows;
+  var selIdx=window._selectedLaneIdx;
+  if(rows && selIdx!==null && selIdx!==undefined && selIdx<rows.length){
+    var fps=getFPS();
+    var row=rows[selIdx];
+    if(applyFrameRow(row,fps)){
+      var tot=(row.frames[row.frames.length-1]-row.frames[0])/fps;
+      setStatus('<span class="csv-ok">fps='+fps+' で再計算（レーン '+row.lane+'、総タイム='+tot.toFixed(2)+'s）</span>');
+    }
+  }
+});
+document.getElementById("evbtn").addEventListener("click",evaluate);
+buildInputs();
+
+// HTML onclick属性から呼べるようにグローバルスコープへ公開
+window.showTab=showTab;
+window.setCompChartMode=setCompChartMode;
+window.printResult=printResult;
+window.updateDurations=updateDurations;
+window.clearInputs=clearInputs;
+window.clearCSV=clearCSV;
+window.saveResult=saveResult;
+window.toggleComp=toggleComp;
+window.delEntry=delEntry;
+})();
+</script>
+</body>
+</html>

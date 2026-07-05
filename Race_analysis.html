@@ -1,0 +1,2669 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Race Analysis App</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #0d0e12;
+        --panel: #13141a;
+        --surf: #1a1b23;
+        --b1: #252630;
+        --b2: #2e3040;
+        --ac: #4af0a0;
+        --ac2: #f0a04a;
+        --rd: #f05a4a;
+        --tx: #b8bcd0;
+        --tx2: #6a6e88;
+        --br: #e8eaf8;
+        --ff: ui-monospace, "Menlo", "Consolas", monospace;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background: var(--bg);
+        color: var(--tx);
+        font-family: var(--ff);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        font-size: 13px;
+      }
+
+      /* TOP BAR */
+      #topbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        height: 46px;
+        flex-shrink: 0;
+        background: var(--panel);
+        border-bottom: 1px solid var(--b1);
+      }
+      .logo {
+        font-size: 0.9rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: var(--br);
+      }
+      .logo em {
+        color: var(--ac);
+        font-style: normal;
+      }
+      #topbar .right {
+        margin-left: auto;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--b2);
+        background: var(--surf);
+        color: var(--tx);
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: var(--ff);
+        font-size: 0.78rem;
+        padding: 0 10px;
+        height: 32px;
+        white-space: nowrap;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      button:hover {
+        border-color: var(--ac);
+      }
+      .btn-ac {
+        background: var(--ac);
+        border-color: var(--ac);
+        color: #000;
+        font-weight: 700;
+      }
+      .btn-ac:hover {
+        opacity: 0.85;
+      }
+      .btn-rd {
+        background: var(--rd);
+        border-color: var(--rd);
+        color: #fff;
+      }
+      select {
+        background: var(--surf);
+        color: var(--tx);
+        border: 1px solid var(--b2);
+        border-radius: 4px;
+        font-family: var(--ff);
+        font-size: 0.78rem;
+        padding: 0 6px;
+        height: 32px;
+        outline: none;
+      }
+
+      /* BODY — height set by fixH() like reference */
+      #body {
+        display: flex;
+        overflow: hidden;
+      }
+
+      /* VIDEO COLUMN */
+      #vcol {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-width: 0;
+      }
+
+      /* Drop zone */
+      #dz {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        cursor: pointer;
+        border: 2px dashed var(--b2);
+        margin: 18px;
+        border-radius: 10px;
+      }
+      #dz.over {
+        border-color: var(--ac);
+      }
+      #dz .dzi {
+        font-size: 3rem;
+        color: var(--tx2);
+      }
+      #dz .dzt {
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        color: var(--tx2);
+      }
+      #dz .dzs {
+        font-size: 0.6rem;
+        color: var(--tx2);
+        opacity: 0.6;
+        text-align: center;
+        line-height: 1.8;
+      }
+
+      /* Video viewport — exact same as reference */
+      #vp {
+        flex: 1;
+        position: relative;
+        display: none;
+        overflow: hidden;
+        background: #000;
+      }
+      #vi {
+        position: absolute;
+        transform-origin: 0 0;
+      }
+      #ve {
+        display: block;
+      }
+      #lc {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+      }
+      #cc {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        cursor: crosshair;
+        touch-action: none;
+      }
+
+      /* CONTROLS BAR */
+      #ctrl {
+        flex-shrink: 0;
+        background: var(--panel);
+        border-top: 1px solid var(--b1);
+        padding: 8px 12px 10px;
+        display: none;
+      }
+      .sr {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .ct {
+        font-size: 0.75rem;
+        color: var(--ac);
+        white-space: nowrap;
+        min-width: 86px;
+      }
+      .ct2 {
+        font-size: 0.72rem;
+        color: var(--tx2);
+        white-space: nowrap;
+        min-width: 40px;
+        text-align: right;
+      }
+      .sl-wrap {
+        flex: 1;
+        display: flex;
+        align-items: center;
+      }
+      input[type="range"].sl {
+        width: 100%;
+        -webkit-appearance: none;
+        height: 6px;
+        background: var(--b2);
+        border-radius: 3px;
+        outline: none;
+        cursor: pointer;
+      }
+      input[type="range"].sl::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--ac);
+        box-shadow: 0 0 0 2px #0d0e12;
+      }
+      .tr {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .pb {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+      }
+      .pb.on {
+        background: var(--ac);
+        border-color: var(--ac);
+        color: #000;
+      }
+      .fi {
+        display: flex;
+        gap: 12px;
+        margin-left: 4px;
+        flex-wrap: wrap;
+      }
+      .fii {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .fil {
+        font-size: 0.44rem;
+        color: var(--tx2);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .fiv {
+        font-size: 0.7rem;
+        color: var(--br);
+      }
+      .fiv.a1 {
+        color: var(--ac);
+      }
+      .fiv.a2 {
+        color: var(--ac2);
+      }
+
+      /* FPS */
+      #fps-wrap {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.65rem;
+        color: var(--tx2);
+      }
+      #fps-inp {
+        width: 52px;
+        background: var(--surf);
+        border: 1px solid var(--b2);
+        color: var(--br);
+        border-radius: 4px;
+        padding: 3px 6px;
+        font-family: var(--ff);
+        font-size: 0.75rem;
+        outline: none;
+        height: 28px;
+      }
+
+      /* RIGHT PANEL */
+      #rp {
+        width: 305px;
+        flex-shrink: 0;
+        background: var(--panel);
+        border-left: 1px solid var(--b1);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .rh {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--b1);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex-shrink: 0;
+      }
+      .rht {
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: var(--br);
+      }
+      .rhc {
+        font-size: 0.6rem;
+        color: var(--tx2);
+        background: var(--surf);
+        border: 1px solid var(--b2);
+        padding: 1px 7px;
+        border-radius: 9px;
+      }
+      .rha {
+        margin-left: auto;
+        display: flex;
+        gap: 5px;
+      }
+
+      #rec-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+        padding: 8px;
+        overflow-y: auto;
+        overflow-x: auto;
+        flex: 1;
+      }
+      .rcol {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .rch {
+        font-size: 0.55rem;
+        font-weight: 700;
+        padding: 3px 4px;
+        border-radius: 3px;
+        text-align: center;
+        border: 1px solid transparent;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .rch.active {
+        font-size: 0.7rem;
+      }
+      .ri {
+        font-size: 0.6rem;
+        padding: 2px 4px;
+        border-radius: 3px;
+        cursor: pointer;
+        text-align: center;
+        background: var(--surf);
+        border: 1px solid var(--b2);
+        transition: background 0.1s;
+        position: relative;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .ri:hover {
+        background: var(--b2);
+      }
+      .ri.sf {
+        font-weight: 700;
+      }
+      .ri .dx {
+        display: none;
+        position: absolute;
+        right: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.5rem;
+        color: var(--rd);
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        line-height: 1;
+        height: auto;
+        width: auto;
+      }
+      .ri:hover .dx {
+        display: block;
+      }
+
+      /* label colours */
+      .lc0 {
+        color: #4af0a0;
+      }
+      .lc1 {
+        color: #f0a04a;
+      }
+      .lc2 {
+        color: #4a9cf0;
+      }
+      .lc3 {
+        color: #c97cf7;
+      }
+      .lc4 {
+        color: #4fcfef;
+      }
+      .lc5 {
+        color: #f7c94f;
+      }
+      .lc6 {
+        color: #e74c3c;
+      }
+      .lc7 {
+        color: #5dade2;
+      }
+      .lc8 {
+        color: #58d68d;
+      }
+      .lc9 {
+        color: #aab7b8;
+      }
+      .bc0 {
+        border-color: #4af0a0;
+        background: rgba(74, 240, 160, 0.12);
+      }
+      .bc1 {
+        border-color: #f0a04a;
+        background: rgba(240, 160, 74, 0.12);
+      }
+      .bc2 {
+        border-color: #4a9cf0;
+        background: rgba(74, 156, 240, 0.12);
+      }
+      .bc3 {
+        border-color: #c97cf7;
+        background: rgba(201, 124, 247, 0.12);
+      }
+      .bc4 {
+        border-color: #4fcfef;
+        background: rgba(79, 207, 239, 0.12);
+      }
+      .bc5 {
+        border-color: #f7c94f;
+        background: rgba(247, 201, 79, 0.12);
+      }
+      .bc6 {
+        border-color: #e74c3c;
+        background: rgba(231, 76, 60, 0.12);
+      }
+      .bc7 {
+        border-color: #5dade2;
+        background: rgba(93, 173, 226, 0.12);
+      }
+      .bc8 {
+        border-color: #58d68d;
+        background: rgba(88, 214, 141, 0.12);
+      }
+      .bc9 {
+        border-color: #aab7b8;
+        background: rgba(170, 183, 184, 0.12);
+      }
+
+      #shortcuts {
+        padding: 8px 12px;
+        border-top: 1px solid var(--b1);
+        font-size: 0.58rem;
+        color: var(--tx2);
+        line-height: 1.9;
+      }
+      .key {
+        display: inline-block;
+        background: var(--surf);
+        border: 1px solid var(--b2);
+        border-radius: 2px;
+        padding: 0 4px;
+        font-size: 0.5rem;
+        color: var(--tx);
+      }
+      #rec-actions {
+        padding: 8px;
+        border-top: 1px solid var(--b1);
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+
+      /* Lane filter */
+      #lane-filter {
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--b1);
+        flex-shrink: 0;
+      }
+      .lf-header {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: 4px;
+      }
+      .lf-title {
+        font-size: 0.5rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--tx2);
+      }
+      .lf-btn {
+        height: 20px;
+        padding: 0 7px;
+        font-size: 0.5rem;
+        letter-spacing: 0.04em;
+        color: var(--tx2);
+        border-color: var(--b2);
+        background: var(--surf);
+      }
+      .lf-btn:hover {
+        color: var(--ac);
+        border-color: var(--ac);
+      }
+      #lane-checks {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 2px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+      #lane-checks::-webkit-scrollbar {
+        height: 2px;
+      }
+      #lane-checks::-webkit-scrollbar-thumb {
+        background: var(--b2);
+      }
+      .lchk {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        cursor: pointer;
+      }
+      .lchk input {
+        width: 11px;
+        height: 11px;
+        accent-color: var(--ac);
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+      .lchk span {
+        font-size: 0.58rem;
+        color: var(--tx);
+        font-family: var(--ff);
+        white-space: nowrap;
+      }
+
+      /* Records grid: horizontal (lane columns) or vertical (dist labels) */
+      #rec-grid {
+        padding: 0;
+        overflow-y: auto;
+        overflow-x: auto;
+        flex: 1;
+      }
+      #rec-grid.mode-lane {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+        padding: 8px;
+      }
+      #rec-grid.mode-dist {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      /* Vertical dist label rows */
+      .dist-row {
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid var(--b1);
+        min-height: 26px;
+        min-width: max-content;
+        flex-wrap: nowrap;
+      }
+      .dist-row-hdr {
+        width: var(--hdr-w, 56px);
+        flex-shrink: 0;
+        font-size: 0.58rem;
+        font-weight: 700;
+        color: var(--ac2);
+        padding: 3px 8px;
+        font-family: var(--ff);
+        white-space: nowrap;
+        border-right: 1px solid var(--b1);
+        background: var(--panel);
+        position: sticky;
+        left: 0;
+        z-index: 2;
+      }
+      .dist-row-cells {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 4px;
+        padding: 3px 4px;
+        align-items: center;
+      }
+      .dist-ri {
+        width: var(--cell-w, 30px);
+        height: 26px;
+        border-radius: 4px;
+        cursor: pointer;
+        background: var(--surf);
+        border: 1px solid var(--b2);
+        font-family: var(--ff);
+        transition: background 0.1s;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .dist-ri:hover {
+        background: var(--b2);
+        border-color: var(--ac2);
+      }
+      .dist-ri .frame-num {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(13, 14, 20, 0.95);
+        border: 1px solid var(--b2);
+        border-radius: 3px;
+        font-size: 0.58rem;
+        color: var(--br);
+        padding: 2px 5px;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 50;
+      }
+      .dist-ri:hover .frame-num {
+        display: block;
+      }
+      .dist-ri .dx {
+        display: none;
+        position: absolute;
+        top: 1px;
+        right: 1px;
+        font-size: 0.42rem;
+        color: var(--rd);
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        line-height: 1;
+        height: auto;
+        width: auto;
+      }
+      .dist-ri:hover .dx {
+        display: block;
+      }
+      /* lane badge on dist-ri */
+      .lane-badge {
+        display: inline-block;
+        font-size: 0.45rem;
+        padding: 0 3px;
+        border-radius: 2px;
+        margin-right: 2px;
+        font-weight: 700;
+        vertical-align: middle;
+      }
+
+      /* Graph tooltip */
+      #graph-tooltip {
+        display: none;
+        position: absolute;
+        pointer-events: none;
+        background: rgba(13, 14, 18, 0.92);
+        border: 1px solid var(--b2);
+        border-radius: 4px;
+        padding: 5px 9px;
+        font-size: 0.72rem;
+        font-family: var(--ff);
+        color: var(--br);
+        white-space: nowrap;
+        box-shadow: 0 2px 12px #0008;
+        z-index: 10;
+        line-height: 1.7;
+      }
+
+      /* Graph modal */
+      #graph-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.72);
+        z-index: 500;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+      #graph-modal-overlay.open {
+        display: flex;
+        pointer-events: auto;
+      }
+      #graph-modal {
+        background: var(--panel);
+        border: 1px solid var(--b2);
+        border-radius: 8px;
+        width: min(820px, 96vw);
+        max-height: 88vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 40px #000c;
+      }
+      .gm-header {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px 10px;
+        border-bottom: 1px solid var(--b1);
+        flex-shrink: 0;
+      }
+      .gm-title {
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--br);
+        flex: 1;
+      }
+      .gm-body {
+        flex: 1;
+        padding: 16px;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #graph-canvas {
+        max-width: 100%;
+        max-height: calc(88vh - 100px);
+      }
+      .gm-footer {
+        padding: 8px 16px;
+        border-top: 1px solid var(--b1);
+        flex-shrink: 0;
+      }
+
+      /* Time input modal */
+      #time-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        z-index: 500;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+      #time-modal-overlay.open {
+        display: flex;
+        pointer-events: auto;
+      }
+      #time-modal {
+        background: var(--panel);
+        border: 1px solid var(--b2);
+        border-radius: 8px;
+        width: 360px;
+        max-width: 94vw;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 40px #000a;
+      }
+      .tm-header {
+        display: flex;
+        align-items: center;
+        padding: 12px 14px 10px;
+        border-bottom: 1px solid var(--b1);
+        flex-shrink: 0;
+        gap: 8px;
+      }
+      .tm-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--br);
+        flex: 1;
+      }
+      .tm-close {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        border: 1px solid var(--b2);
+        background: var(--surf);
+        color: var(--tx2);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .tm-close:hover {
+        border-color: var(--rd);
+        color: var(--rd);
+      }
+      .tm-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px 14px;
+      }
+      .tm-lane-block {
+        border: 1px solid var(--b2);
+        border-radius: 6px;
+        margin-bottom: 10px;
+        overflow: hidden;
+      }
+      .tm-lane-block:last-child {
+        margin-bottom: 0;
+      }
+      .tm-lane-hdr {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        background: var(--surf);
+        border-bottom: 1px solid var(--b1);
+      }
+      .tm-lane-name {
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 3px;
+      }
+      .tm-lane-prog {
+        font-size: 0.55rem;
+        color: var(--tx2);
+        margin-left: auto;
+      }
+      .tm-lane-prog em {
+        font-style: normal;
+        font-weight: 700;
+        color: var(--ac);
+      }
+      .tm-lane-fields {
+        padding: 8px 10px;
+      }
+      .tp-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px 12px;
+      }
+      .tp-row {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .tp-lbl {
+        font-size: 0.55rem;
+        color: var(--tx2);
+        letter-spacing: 0.04em;
+      }
+      .tp-inp {
+        width: 100%;
+        padding: 4px 7px;
+        background: var(--surf);
+        border: 1px solid var(--b2);
+        color: var(--br);
+        border-radius: 3px;
+        font-family: var(--ff);
+        font-size: 0.78rem;
+        outline: none;
+      }
+      .tp-inp:focus {
+        border-color: var(--ac);
+      }
+      .tp-inp.filled {
+        border-color: rgba(74, 240, 160, 0.5);
+      }
+      .tm-footer {
+        padding: 10px 14px;
+        border-top: 1px solid var(--b1);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tm-progress {
+        font-size: 0.62rem;
+        color: var(--tx2);
+        flex: 1;
+      }
+      .tm-progress em {
+        color: var(--ac);
+        font-style: normal;
+        font-weight: 700;
+      }
+      /* タイム入力ボタン */
+      #btn-time-open {
+        position: relative;
+      }
+      #btn-time-badge {
+        display: none;
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: var(--ac);
+        color: #000;
+        font-size: 0.45rem;
+        font-weight: 700;
+        border-radius: 8px;
+        padding: 1px 4px;
+        pointer-events: none;
+        line-height: 1.4;
+      }
+
+      #toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(70px);
+        background: var(--surf);
+        border: 1px solid var(--b2);
+        border-radius: 4px;
+        padding: 7px 16px;
+        font-size: 0.75rem;
+        transition: transform 0.28s;
+        pointer-events: none;
+        z-index: 200;
+      }
+      #toast.show {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      ::-webkit-scrollbar {
+        width: 3px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--b2);
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body tabindex="-1">
+    <div id="topbar">
+      <div class="logo">RACE <em>ANALYSIS</em></div>
+      <div id="fps-wrap">FPS: <input type="number" id="fps-inp" value="60" min="1" max="240" step="any" /></div>
+      <div id="fps-wrap" style="gap: 3px">
+        記録:
+        <select id="rec-mode-sel" style="font-size: 0.65rem; padding: 1px 4px; border-radius: 4px; border: 1px solid var(--br); background: var(--bg2); color: var(--tx)">
+          <option value="frame">フレーム番号</option>
+          <option value="time">時間（秒）</option>
+        </select>
+      </div>
+      <select id="dist-sel" title="競技距離を選択">
+        <option value="">距離: なし</option>
+        <option value="50">50m</option>
+        <option value="100">100m</option>
+        <option value="200">200m</option>
+        <option value="400">400m</option>
+        <option value="800">800m</option>
+        <option value="1500">1500m</option>
+      </select>
+      <div class="right">
+        <select id="label-sel"></select>
+        <select id="speed-sel">
+          <option value="0.5">0.5x</option>
+          <option value="1" selected>1x</option>
+          <option value="4">4x</option>
+        </select>
+        <button id="btn-mark" class="btn-rd">● 記録 [R]</button>
+        <button id="btn-save">💾 保存 [S]</button>
+        <button class="btn-ac" id="openbtn">+ OPEN</button>
+        <button id="ejectbtn">✕ CLOSE</button>
+      </div>
+    </div>
+
+    <!-- #body height set by fixH() — same as reference -->
+    <div id="body">
+      <div id="vcol">
+        <div id="dz">
+          <div class="dzi">▶</div>
+          <div class="dzt">OPEN VIDEO FILE</div>
+          <div class="dzs">クリックまたはドロップ<br />MP4 · WEBM · MOV</div>
+        </div>
+
+        <!-- Exact same DOM structure as reference -->
+        <div id="vp">
+          <div id="vi">
+            <video id="ve" preload="metadata" playsinline></video>
+            <canvas id="lc"></canvas>
+          </div>
+          <canvas id="cc"></canvas>
+        </div>
+
+        <div id="ctrl">
+          <div class="sr">
+            <div class="ct" id="ctd">0:00.000</div>
+            <div class="sl-wrap">
+              <input type="range" class="sl" id="sl" min="0" max="10000" value="0" />
+            </div>
+            <div class="ct2" id="ctd2">0:00</div>
+          </div>
+          <div class="tr">
+            <button id="btn-pf" style="height: 40px; padding: 0 10px">◀◀ 8f</button>
+            <button id="btn-p1" style="height: 40px; padding: 0 10px">◀ 1f</button>
+            <button class="pb" id="playbtn">▶</button>
+            <button id="btn-n1" style="height: 40px; padding: 0 10px">1f ▶</button>
+            <button id="btn-nf" style="height: 40px; padding: 0 10px">8f ▶▶</button>
+            <div class="fi">
+              <div class="fii"><span class="fil">Frame</span><span class="fiv a1" id="hf">—</span></div>
+              <div class="fii"><span class="fil">Time</span><span class="fiv a2" id="ht">—</span></div>
+              <div class="fii"><span class="fil">Label</span><span class="fiv a1" id="hl">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="rp">
+        <div class="rh">
+          <span class="rht">RECORDS</span>
+          <span class="rhc" id="rec-count">0</span>
+          <div class="rha">
+            <button style="font-size: 0.6rem; height: 28px; padding: 0 8px" id="btn-load-csv" title="ラベルCSV・線CSVを読み込みます（自動判定）">📥 CSV読込</button>
+            <button style="font-size: 0.6rem; height: 28px; padding: 0 8px; color: var(--rd)" id="btn-clear-all">✕ ALL</button>
+          </div>
+        </div>
+        <!-- レーンフィルター -->
+        <div id="lane-filter">
+          <div class="lf-header">
+            <span class="lf-title">レーン表示</span>
+            <button id="lane-all" class="lf-btn">全選択</button>
+            <button id="lane-none" class="lf-btn">全解除</button>
+          </div>
+          <div id="lane-checks"></div>
+        </div>
+        <!-- 記録グリッド -->
+        <div id="rec-grid"></div>
+        <div id="shortcuts">
+          <span class="key">←/→</span> 1f &nbsp; <span class="key">A/F</span> 8f &nbsp; <span class="key">D/G</span> 60f<br />
+          <span class="key">Space</span> 再生/停止 &nbsp; <span class="key">R</span> 記録 &nbsp; <span class="key">S</span> 保存<br />
+          <span class="key">T</span> ラベル切替 &nbsp; <span class="key">J</span> 次の記録フレームへ<br />
+          <span class="key">左ドラッグ</span> 線描画 &nbsp; <span class="key">右クリック(線上)</span> 線削除
+        </div>
+        <div id="rec-actions">
+          <button id="btn-clear-lines" style="font-size: 0.65rem">🗑 線クリア</button>
+          <button id="btn-time-open" style="font-size: 0.65rem; display: none">⏱ タイム入力<span id="btn-time-badge"></span></button>
+          <button id="btn-graph" style="font-size: 0.65rem; display: none">📈 グラフ表示</button>
+        </div>
+      </div>
+    </div>
+
+    <input type="file" id="fi" accept="video/*" style="display: none" />
+    <!-- グラフモーダル -->
+    <div id="graph-modal-overlay">
+      <div id="graph-modal">
+        <div class="gm-header">
+          <span class="gm-title">📈 ラップタイム グラフ</span>
+          <button class="tm-close" id="gm-close-btn">✕</button>
+        </div>
+        <div class="gm-body" style="position: relative">
+          <canvas id="graph-canvas"></canvas>
+          <div id="graph-tooltip"></div>
+        </div>
+        <div class="gm-footer">
+          <span id="gm-info" style="font-size: 0.6rem; color: var(--tx2)"></span>
+        </div>
+      </div>
+    </div>
+    <input type="file" id="csvfi" accept=".csv" style="display: none" />
+    <!-- タイム入力モーダル -->
+    <div id="time-modal-overlay">
+      <div id="time-modal">
+        <div class="tm-header">
+          <span class="tm-title">⏱ 公式タイム入力</span>
+          <button class="tm-close" id="tm-close-btn">✕</button>
+        </div>
+        <div class="tm-body">
+          <div id="tp-fields" class="tp-grid"></div>
+        </div>
+        <div class="tm-footer">
+          <span class="tm-progress" id="tm-progress"></span>
+          <button style="height: 30px; padding: 0 14px; font-size: 0.7rem; background: var(--ac); border-color: var(--ac); color: #000; font-weight: 700" id="tm-done-btn">完了</button>
+        </div>
+      </div>
+    </div>
+    <div id="toast"></div>
+
+    <script>
+      // ── Height fix — CRITICAL: same as reference, ensures #vp has non-zero height ──
+      function fixH() {
+        document.getElementById("body").style.height = window.innerHeight - 46 + "px";
+      }
+      fixH();
+      window.addEventListener("resize", fixH);
+
+      const G = (id) => document.getElementById(id);
+
+      // ── DOM refs ──
+      const ve = G("ve");
+      const vp = G("vp");
+      const vi = G("vi");
+      const lc = G("lc");
+      const ccv = G("cc");
+      const lctx = lc.getContext("2d");
+      const cctx = ccv.getContext("2d");
+      const dz = G("dz");
+      const ctrl = G("ctrl");
+      const sl = G("sl");
+      const playBtn = G("playbtn");
+      const fpsEl = G("fps-inp");
+      const recModeSel = G("rec-mode-sel");
+      function getRecordMode() {
+        return recModeSel ? recModeSel.value : "frame";
+      }
+      // フレーム番号→時間文字列変換
+      function frameToSec(f) {
+        return Math.max(0, (f - getStartFrame()) / getFPS()).toFixed(2) + "s";
+      }
+      // 時間モード時の表示値
+      function getStartFrame() {
+        if (!markedFrames.length) return 0;
+        return Math.min(...markedFrames.map((e) => e.frame));
+      }
+      // 表示値: フレーム番号 or 最初の共通フレームを0秒とした経過時間
+      function displayVal(f) {
+        if (getRecordMode() === "time") {
+          const t = Math.max(0, (f - getStartFrame()) / getFPS());
+          return t.toFixed(2);
+        }
+        return String(f);
+      }
+      const labelSel = G("label-sel");
+      const speedSel = G("speed-sel");
+
+      // ── State ──
+      let vW = 0,
+        vH = 0,
+        rW = 0,
+        rH = 0;
+      let totalFrames = 0,
+        nativeFps = 60;
+      let playing = false,
+        rafId = null;
+      let vx = 0,
+        vy = 0,
+        vsc = 1;
+      let lx = 0,
+        ly = 0,
+        rdY = 0,
+        rdSc = 1;
+      let leftDown = false,
+        rightDown = false;
+      let currentFrame = 0;
+      let _seekGen = 0;
+      let _playBaseFrames = -1,
+        _playBaseVideoFrame = 0;
+      let _fpsDetected = false,
+        _confirmedMediaTime = -1;
+      let currentLabel = "0";
+      let markedFrames = [];
+      let globalLines = [];
+      let labelNames = {};
+      let drawMode = false,
+        drawStart = null;
+      let currentFileName = "";
+      let selectedDist = ""; // 選択中の競技距離
+      let activeLanes = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]); // 表示レーン
+
+      // ── 競技距離別ラベル定義 ──
+      const DIST_LABELS = {
+        50: ["15m", "ST1S", "ST1E", "25m", "ST2S", "ST2E", "35m", "ST3S", "ST3E", "45m"],
+        100: ["15m", "ST1S", "ST1E", "25m", "ST2S", "ST2E", "35m", "ST3S", "ST3E", "45m", "65m", "ST4S", "ST4E", "75m", "ST5S", "ST5E", "85m", "ST6S", "ST6E", "95m"],
+        200: ["15m", "ST1S", "ST1E", "25m", "ST2S", "ST2E", "45m", "65m", "ST3S", "ST3E", "75m", "ST4S", "ST4E", "95m", "115m", "ST5S", "ST5E", "125m", "ST6S", "ST6E", "145m", "165m", "ST7S", "ST7E", "175m", "ST8S", "ST8E", "195m"],
+        400: ["15m", "ST1S", "ST1E", "45m", "65m", "ST2S", "ST2E", "95m", "115m", "ST3S", "ST3E", "145m", "ST4S", "ST4E", "195m", "215m", "ST5S", "ST5E", "225m", "ST6S", "ST6E", "245m", "265m", "ST7S", "ST7E", "295m", "315m", "ST8S", "ST8E", "345m", "ST9S", "ST9E", "365m", "ST10S", "ST10E", "395m"],
+        800: [
+          "15m",
+          "ST1S",
+          "ST1E",
+          "45m",
+          "65m",
+          "ST2S",
+          "ST2E",
+          "95m",
+          "115m",
+          "ST3S",
+          "ST3E",
+          "145m",
+          "ST4S",
+          "ST4E",
+          "195m",
+          "315m",
+          "ST5S",
+          "ST5E",
+          "325m",
+          "ST6S",
+          "ST6E",
+          "345m",
+          "365m",
+          "ST7S",
+          "ST7E",
+          "395m",
+          "615m",
+          "ST8S",
+          "ST8E",
+          "645m",
+          "ST9S",
+          "ST9E",
+          "665m",
+          "ST10S",
+          "ST10E",
+          "695m",
+          "715m",
+          "ST11S",
+          "ST11E",
+          "745m",
+          "765m",
+          "ST12S",
+          "ST12E",
+          "795m",
+        ],
+        1500: [
+          "15m",
+          "ST1S",
+          "ST1E",
+          "45m",
+          "65m",
+          "ST2S",
+          "ST2E",
+          "95m",
+          "115m",
+          "ST3S",
+          "ST3E",
+          "145m",
+          "ST4S",
+          "ST4E",
+          "195m",
+          "515m",
+          "ST5S",
+          "ST5E",
+          "525m",
+          "ST6S",
+          "ST6E",
+          "545m",
+          "565m",
+          "ST7S",
+          "ST7E",
+          "595m",
+          "1015m",
+          "ST8S",
+          "ST8E",
+          "1045m",
+          "ST9S",
+          "ST9E",
+          "1065m",
+          "ST10S",
+          "ST10E",
+          "1095m",
+          "1415m",
+          "ST11S",
+          "ST11E",
+          "1445m",
+          "1465m",
+          "ST12S",
+          "ST12E",
+          "1495m",
+        ],
+      };
+
+      // ── 競技距離別タイム入力項目 ──
+      const TIME_FIELDS = {
+        50: ["RT", "50m"],
+        100: ["RT", "50m", "100m"],
+        200: ["RT", "50m", "100m", "150m", "200m"],
+        400: ["RT", "50m", "100m", "150m", "200m", "250m", "300m", "350m", "400m"],
+        800: ["RT", "50m", "100m", "150m", "200m", "250m", "300m", "350m", "400m", "450m", "500m", "550m", "600m", "650m", "700m", "750m", "800m"],
+        1500: ["RT", "50m", "100m", "150m", "200m", "250m", "300m", "350m", "400m", "450m", "500m", "550m", "600m", "650m", "700m", "750m", "800m", "850m", "900m", "950m", "1000m", "1050m", "1100m", "1150m", "1200m", "1250m", "1300m", "1350m", "1400m", "1450m", "1500m"],
+      };
+
+      // タイム入力値をレーン別に保持 { '0': { 'RT':'0.142', '50m':'5.82' }, '1': {...} }
+      let timeValues = {};
+
+      // ── グラフ ──
+      const LANE_COLORS = ["#4af0a0", "#f0a04a", "#4a9cf0", "#c97cf7", "#4fcfef", "#f7c94f", "#e74c3c", "#5dade2", "#58d68d", "#aab7b8"];
+
+      function updateGraphButton() {
+        const btn = G("btn-graph");
+        if (!selectedDist && markedFrames.length > 0) btn.style.display = "";
+        else btn.style.display = "none";
+      }
+
+      function syncLaneCheckboxUI() {
+        G("lane-checks")
+          .querySelectorAll(".lchk")
+          .forEach((lbl) => {
+            const val = lbl.querySelector("input").value;
+
+            // チェック状態
+            lbl.querySelector("input").checked = activeLanes.has(val);
+
+            // ✅ 選択強調
+            if (val === currentLabel) {
+              lbl.style.border = "2px solid yellow";
+              lbl.style.background = "rgba(255,255,0,0.15)";
+            } else {
+              lbl.style.border = "none";
+              lbl.style.background = "transparent";
+            }
+          });
+      }
+
+      function openGraph() {
+        drawGraph();
+        G("graph-modal-overlay").classList.add("open");
+      }
+      function closeGraph() {
+        G("graph-modal-overlay").classList.remove("open");
+        G("graph-tooltip").style.display = "none";
+      }
+      G("btn-graph").onclick = openGraph;
+      G("gm-close-btn").onclick = closeGraph;
+      G("graph-modal-overlay").onclick = (e) => {
+        if (e.target === G("graph-modal-overlay")) closeGraph();
+      };
+
+      // ── グラフ ツールチップ ──
+      G("graph-canvas").addEventListener("mousemove", (e) => {
+        const canvas = G("graph-canvas");
+        const tip = G("graph-tooltip");
+        const pts = canvas._graphPts;
+        if (!pts || !pts.length) {
+          tip.style.display = "none";
+          return;
+        }
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
+        // 最近傍点を検索（ヒット半径20px）
+        let best = null,
+          bestD = Infinity;
+        for (const p of pts) {
+          const d = Math.hypot(p.x - mx, p.y - my);
+          if (d < bestD) {
+            bestD = d;
+            best = p;
+          }
+        }
+        if (!best || bestD > 20) {
+          tip.style.display = "none";
+          return;
+        }
+        // ツールチップ内容
+        tip.innerHTML = '<span style="color:' + LANE_COLORS[parseInt(best.lane) % 10] + '">■ L' + best.lane + "</span>" + "<br>区間: " + best.seg + "<br>" + best.val.toFixed(4) + " s";
+        // 位置: canvasの表示サイズ基準で配置
+        const dispX = best.x / scaleX,
+          dispY = best.y / scaleY;
+        const offX = dispX > rect.width / 2 ? -10 : 14;
+        const offY = dispY > rect.height / 2 ? -70 : 8;
+        tip.style.left = dispX + offX + "px";
+        tip.style.top = dispY + offY + "px";
+        tip.style.display = "block";
+      });
+      G("graph-canvas").addEventListener("mouseleave", () => {
+        G("graph-tooltip").style.display = "none";
+      });
+
+      function drawGraph() {
+        const canvas = G("graph-canvas");
+        const fps = parseFloat(fpsEl.value) || nativeFps || 60;
+        const lanes = [...activeLanes]
+          .map(Number)
+          .sort((a, b) => a - b)
+          .map(String);
+        const byLane = {};
+        for (const ln of lanes) byLane[ln] = [];
+        for (const e of markedFrames) if (activeLanes.has(e.label)) byLane[e.label].push(e.frame);
+        for (const ln of lanes) byLane[ln].sort((a, b) => a - b);
+        const laps = {};
+        let maxLaps = 0;
+        for (const ln of lanes) {
+          const frames = byLane[ln];
+          // frames[0]=スタートシグナル、[0]→[1]（スタート〜最初の計測点）から差分表示
+          if (frames.length < 2) {
+            laps[ln] = [];
+            continue;
+          }
+          laps[ln] = [];
+          for (let i = 1; i < frames.length; i++) laps[ln].push((frames[i] - frames[i - 1]) / fps);
+          maxLaps = Math.max(maxLaps, laps[ln].length);
+        }
+        const xCount = maxLaps;
+        if (xCount === 0) {
+          G("gm-info").textContent = "記録が2件以上必要です";
+          return;
+        }
+        const W = Math.min(760, Math.round(window.innerWidth * 0.88));
+        const H = Math.round(W * 0.52);
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext("2d");
+        const PAD = { top: 28, right: 28, bottom: 50, left: 68 };
+        const plotW = W - PAD.left - PAD.right;
+        const plotH = H - PAD.top - PAD.bottom;
+        const allVals = Object.values(laps).flat();
+        if (!allVals.length) return;
+        const minV = Math.min(...allVals) * 0.94;
+        const maxV = Math.max(...allVals) * 1.06;
+        const toX = (i) => PAD.left + (xCount > 1 ? i / (xCount - 1) : 0.5) * plotW;
+        const toY = (v) => PAD.top + plotH - ((v - minV) / (maxV - minV || 1)) * plotH;
+        // 背景
+        ctx.fillStyle = "#0d0e12";
+        ctx.fillRect(0, 0, W, H);
+        // グリッド・y軸
+        const ySteps = 5;
+        for (let i = 0; i <= ySteps; i++) {
+          const v = minV + ((maxV - minV) * i) / ySteps;
+          const y = toY(v);
+          ctx.strokeStyle = "#252630";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(PAD.left, y);
+          ctx.lineTo(W - PAD.right, y);
+          ctx.stroke();
+          ctx.fillStyle = "#6a6e88";
+          ctx.font = "10px monospace";
+          ctx.textAlign = "right";
+          ctx.fillText(v.toFixed(3) + "s", PAD.left - 6, y + 4);
+        }
+        // x軸
+        for (let i = 0; i < xCount; i++) {
+          const x = toX(i);
+          ctx.strokeStyle = "#252630";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, PAD.top);
+          ctx.lineTo(x, H - PAD.bottom);
+          ctx.stroke();
+          ctx.fillStyle = "#6a6e88";
+          ctx.font = "10px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(String(i + 1), x, H - PAD.bottom + 14);
+        }
+        // 軸タイトル
+        ctx.fillStyle = "#b8bcd0";
+        ctx.font = "11px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("区間", W / 2, H - 6);
+        ctx.save();
+        ctx.translate(14, H / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText("ラップ時間 (s)", 0, 0);
+        ctx.restore();
+        // 折れ線
+        const activeLaneList = lanes.filter((ln) => laps[ln] && laps[ln].length > 0);
+        for (const ln of activeLaneList) {
+          const pts = laps[ln];
+          const color = LANE_COLORS[parseInt(ln) % 10];
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2.2;
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+          pts.forEach((v, i) => {
+            const x = toX(i),
+              y = toY(v);
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+          pts.forEach((v, i) => {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(toX(i), toY(v), 3.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        }
+        // 凡例
+        let lx2 = PAD.left;
+        for (const ln of activeLaneList) {
+          const color = LANE_COLORS[parseInt(ln) % 10];
+          ctx.fillStyle = color;
+          ctx.fillRect(lx2, PAD.top - 18, 14, 8);
+          ctx.fillStyle = "#b8bcd0";
+          ctx.font = "10px monospace";
+          ctx.textAlign = "left";
+          ctx.fillText("L" + ln, lx2 + 17, PAD.top - 11);
+          lx2 += 38;
+        }
+        const mode = getRecordMode();
+        const sf = getStartFrame();
+        const modeStr = mode === "time" ? "  記録: 時間（スタート=0s）" : "  記録: フレーム番号";
+        G("gm-info").textContent = "FPS: " + fps.toFixed(4) + "  記録数: " + markedFrames.length + "件" + modeStr;
+
+        // ── ツールチップ用データ保存 ──
+        const _pts = [];
+        for (const ln of activeLaneList) {
+          laps[ln].forEach((v, i) => {
+            _pts.push({ x: toX(i), y: toY(v), lane: ln, seg: i + 1, val: v });
+          });
+        }
+        canvas._graphPts = _pts;
+        canvas._PAD = PAD;
+      }
+
+      function updateTimePanel() {
+        const tf = selectedDist ? TIME_FIELDS[selectedDist] : null;
+        const openBtn = G("btn-time-open");
+        if (!tf) {
+          openBtn.style.display = "none";
+          return;
+        }
+        openBtn.style.display = "";
+        updateTimeBadge();
+      }
+
+      function openTimeModal() {
+        buildAllLaneFields();
+        G("time-modal-overlay").classList.add("open");
+      }
+      function closeTimeModal() {
+        G("time-modal-overlay").classList.remove("open");
+        updateTimeBadge();
+      }
+
+      // アクティブレーン全てのエリアを縦に並べる
+      function buildAllLaneFields() {
+        const tf = selectedDist ? TIME_FIELDS[selectedDist] : null;
+        const container = G("tp-fields");
+        container.innerHTML = "";
+        if (!tf) return;
+        const lanes = [...activeLanes]
+          .map(Number)
+          .sort((a, b) => a - b)
+          .map(String);
+        for (const ln of lanes) {
+          if (!timeValues[ln]) timeValues[ln] = {};
+          const lv = timeValues[ln];
+          const block = document.createElement("div");
+          block.className = "tm-lane-block";
+          // ヘッダー
+          const hdr = document.createElement("div");
+          hdr.className = "tm-lane-hdr";
+          const nm = document.createElement("span");
+          nm.className = "tm-lane-name lc" + ln;
+          nm.style.background = "rgba(0,0,0,.25)";
+          nm.textContent = "Lane " + ln;
+          const prog = document.createElement("span");
+          prog.className = "tm-lane-prog";
+          prog.id = "tm-prog-" + ln;
+          hdr.appendChild(nm);
+          hdr.appendChild(prog);
+          block.appendChild(hdr);
+          // フィールドグリッド
+          const grid = document.createElement("div");
+          grid.className = "tp-grid tm-lane-fields";
+          for (const key of tf) {
+            const row = document.createElement("div");
+            row.className = "tp-row";
+            const lbl = document.createElement("span");
+            lbl.className = "tp-lbl";
+            lbl.textContent = key;
+            const inp = document.createElement("input");
+            inp.className = "tp-inp" + (lv[key] ? " filled" : "");
+            inp.type = "text";
+            inp.placeholder = "例: 5.82";
+            inp.value = lv[key] || "";
+            inp.addEventListener("input", () => {
+              lv[key] = inp.value.trim();
+              inp.classList.toggle("filled", !!inp.value.trim());
+              updateLaneProgress(ln, tf);
+              updateTimeBadge();
+              updateModalProgress(lanes, tf);
+            });
+            row.appendChild(lbl);
+            row.appendChild(inp);
+            grid.appendChild(row);
+          }
+          block.appendChild(grid);
+          container.appendChild(block);
+          updateLaneProgress(ln, tf);
+        }
+        updateModalProgress(lanes, tf);
+      }
+
+      function updateLaneProgress(ln, tf) {
+        const el = G("tm-prog-" + ln);
+        if (!el) return;
+        const lv = timeValues[ln] || {};
+        const filled = tf.filter((k) => lv[k]).length;
+        el.innerHTML = "<em>" + filled + "</em>/" + tf.length;
+      }
+
+      function updateModalProgress(lanes, tf) {
+        const el = G("tm-progress");
+        if (!el || !tf || !lanes) return;
+        const totalFilled = lanes.reduce((s, ln) => {
+          return s + tf.filter((k) => (timeValues[ln] || {})[k]).length;
+        }, 0);
+        el.innerHTML = "全レーン入力済み: <em>" + totalFilled + "</em> / " + lanes.length * tf.length;
+      }
+
+      function updateTimeBadge() {
+        const tf = selectedDist ? TIME_FIELDS[selectedDist] : null;
+        const badge = G("btn-time-badge");
+        if (!tf) {
+          badge.style.display = "none";
+          return;
+        }
+        const filledLanes = Object.keys(timeValues).filter((ln) => tf.some((k) => timeValues[ln] && timeValues[ln][k])).length;
+        if (filledLanes > 0) {
+          badge.style.display = "block";
+          badge.textContent = filledLanes + "L";
+        } else {
+          badge.style.display = "none";
+        }
+      }
+
+      G("btn-time-open").onclick = openTimeModal;
+      G("tm-close-btn").onclick = closeTimeModal;
+      G("tm-done-btn").onclick = closeTimeModal;
+      G("time-modal-overlay").onclick = (e) => {
+        if (e.target === G("time-modal-overlay")) closeTimeModal();
+      };
+
+      // 選択距離のラベル配列（なし or 未定義なら null）
+      function getDistLabels() {
+        if (!selectedDist) return null;
+        const arr = DIST_LABELS[selectedDist];
+        return arr && arr.length ? arr : null;
+      }
+
+      // CSV ヘッダーの Frame列名を返す
+      function getFrameHeaders(maxLen) {
+        const dl = getDistLabels();
+        return Array.from({ length: maxLen }, (_, i) => (dl ? dl[i] || `Frame${i + 1}` : `Frame${i + 1}`));
+      }
+
+      // 距離選択変更
+      G("dist-sel").addEventListener("change", function () {
+        selectedDist = this.value;
+        timeValues = {}; // 距離変更時はタイムリセット
+        updateLabelUI();
+        updateTimePanel();
+        updateGraphButton();
+        // フォーカスをbodyに戻してキー操作を即有効化
+        this.blur();
+        document.body.focus();
+      });
+
+      // ── Label selector init ──
+      for (let i = 0; i < 10; i++) {
+        const o = document.createElement("option");
+        o.value = String(i);
+        o.textContent = String(i);
+        labelSel.appendChild(o);
+      }
+      function updateLabelUI() {
+        for (let i = 0; i < 10; i++) labelSel.options[i].textContent = labelNames[String(i)] || String(i);
+        labelSel.value = currentLabel;
+        G("hl").textContent = labelNames[currentLabel] || currentLabel;
+        labelSel.style.border = "px solid yellow";
+        labelSel.style.background = "rgba(255,255,0,0.15)";
+        labelSel.style.color = "#000";
+        refreshRecords();
+      }
+      labelSel.addEventListener("change", () => {
+        currentLabel = labelSel.value;
+        updateLabelUI();
+        labelSel.blur();
+        document.body.focus();
+      });
+
+      // ── Extract label names from filename ──
+      function extractLabelNames(fn) {
+        const names = {},
+          m = fn.match(/\[(.*?)\]/);
+        if (m)
+          for (const p of m[1].split("-")) {
+            const sm = p.match(/^(\d+)#(.+)/);
+            if (sm) names[String(parseInt(sm[1]) - 1)] = sm[2];
+          }
+        return names;
+      }
+
+      // ── File open ──
+      G("openbtn").onclick = () => G("fi").click();
+      dz.onclick = () => G("fi").click();
+      dz.ondragover = (e) => {
+        e.preventDefault();
+        dz.classList.add("over");
+      };
+      dz.ondragleave = () => dz.classList.remove("over");
+      dz.ondrop = (e) => {
+        e.preventDefault();
+        dz.classList.remove("over");
+        const f = e.dataTransfer.files[0];
+        if (f && f.type.startsWith("video/")) loadVideo(f);
+      };
+      G("fi").onchange = () => {
+        if (G("fi").files[0]) loadVideo(G("fi").files[0]);
+      };
+
+      G("ejectbtn").onclick = () => {
+        if (!vW) return;
+        if (!confirm("動画を閉じますか？（記録データは保持されます）")) return;
+        pauseV();
+        ve.src = "";
+        vW = 0;
+        vH = 0;
+        totalFrames = 0;
+        nativeFps = 60;
+        currentFrame = 0;
+        _fpsDetected = false;
+        _confirmedMediaTime = -1;
+        vp.style.display = "none";
+        ctrl.style.display = "none";
+        dz.style.display = "";
+        lctx.clearRect(0, 0, lc.width, lc.height);
+        cctx.clearRect(0, 0, ccv.width, ccv.height);
+      };
+
+      // ── loadVideo — identical pattern to reference ──
+      function loadVideo(file) {
+        if (ve.src && ve.src.startsWith("blob:")) URL.revokeObjectURL(ve.src);
+
+        _fpsDetected = false;
+        currentFileName = file.name.replace(/\.[^.]+$/, "");
+        markedFrames = []; // 線(globalLines)は動画切替後も保持する
+        labelNames = extractLabelNames(file.name);
+        updateLabelUI();
+
+        ve.src = URL.createObjectURL(file);
+        ve.load();
+
+        ve.onloadedmetadata = () => {
+          vW = ve.videoWidth;
+          vH = ve.videoHeight;
+          lc.width = vW;
+          lc.height = vH;
+          nativeFps = parseFloat(fpsEl.value) || 60;
+          updateTotalFrames();
+          dz.style.display = "none";
+          vp.style.display = "block";
+          ctrl.style.display = "block";
+          currentFrame = 0;
+          _confirmedMediaTime = -1;
+          resetView();
+          drawLines(); // キャンバスサイズ変更後に線を再描画
+          seekToFrame(0);
+          updateHUD();
+          refreshRecords();
+          showToast("読み込み完了: " + file.name);
+        };
+      }
+
+      // ── FPS ──
+      function getFPS() {
+        return Math.max(0.001, parseFloat(fpsEl.value) || nativeFps || 60);
+      }
+      function updateTotalFrames() {
+        totalFrames = Math.round(ve.duration * nativeFps);
+        G("ctd2").textContent = fmtSec(totalFrames / getFPS());
+      }
+      fpsEl.addEventListener("change", () => {
+        nativeFps = parseFloat(fpsEl.value) || 60;
+        if (vW) updateTotalFrames();
+      });
+      if (recModeSel)
+        recModeSel.addEventListener("change", () => {
+          if (vW) refreshRecords();
+        });
+
+      // ── FPS detection via rVFC ──
+      function tryDetectFpsViaPlayback() {
+        if (_fpsDetected || typeof ve.requestVideoFrameCallback !== "function") return;
+        let t0 = null;
+        const cb = (now, meta) => {
+          if (t0 === null) {
+            t0 = meta.mediaTime;
+            ve.requestVideoFrameCallback(cb);
+            return;
+          }
+          const diff = meta.mediaTime - t0;
+          if (diff > 0.001) {
+            const raw = 1 / diff;
+            const common = [23.976, 24, 25, 29.97, 30, 50, 59.94, 60];
+            const snapped = common.reduce((a, b) => (Math.abs(b - raw) < Math.abs(a - raw) ? b : a));
+            if (snapped !== nativeFps) {
+              nativeFps = snapped;
+              fpsEl.value = snapped;
+              updateTotalFrames();
+            }
+            _fpsDetected = true;
+          } else {
+            t0 = meta.mediaTime;
+            ve.requestVideoFrameCallback(cb);
+          }
+        };
+        ve.requestVideoFrameCallback(cb);
+      }
+
+      // ── View / layout ──
+      function resetView() {
+        const w = vp.offsetWidth,
+          h = vp.offsetHeight;
+        if (!w || !h || !vW) return;
+        const s = Math.min(w / vW, h / vH);
+        rW = Math.round(vW * s);
+        rH = Math.round(vH * s);
+        vi.style.width = rW + "px";
+        vi.style.height = rH + "px";
+        ve.style.width = rW + "px";
+        ve.style.height = rH + "px";
+        lc.style.width = rW + "px";
+        lc.style.height = rH + "px";
+        vx = (w - rW) / 2;
+        vy = (h - rH) / 2;
+        vsc = 1;
+        applyView();
+        ccv.width = w;
+        ccv.height = h;
+      }
+      function applyView() {
+        vi.style.transform = `translate(${vx}px,${vy}px) scale(${vsc})`;
+      }
+      new ResizeObserver(() => {
+        if (!vW) return;
+        resetView();
+        drawLines();
+      }).observe(vp);
+
+      // ── Frame / Time ──
+      function frameToTime(f) {
+        return (f + 0.5) / nativeFps;
+      } // +0.5 trick: seek to center of frame
+      function timeToFrame(t) {
+        return Math.round(t * nativeFps);
+      }
+
+      // ── Seek ──
+      function seekToFrame(f) {
+        f = Math.max(0, Math.min(f, totalFrames > 0 ? totalFrames - 1 : 0));
+        currentFrame = f;
+        ve.currentTime = frameToTime(f);
+        updateHUD();
+        if (totalFrames > 1) sl.value = (f / (totalFrames - 1)) * 10000;
+        if (typeof ve.requestVideoFrameCallback === "function") {
+          const gen = ++_seekGen;
+          ve.requestVideoFrameCallback((now, meta) => {
+            if (gen !== _seekGen) return;
+            _confirmedMediaTime = meta.mediaTime;
+            const fi = Math.round(meta.mediaTime * nativeFps);
+            if (fi !== currentFrame) {
+              currentFrame = fi;
+              updateHUD();
+              if (totalFrames > 1) sl.value = (fi / (totalFrames - 1)) * 10000;
+            }
+          });
+        }
+      }
+
+      // ── Playback ──
+      function togglePlay() {
+        if (!vW) return;
+        playing ? pauseV() : playV();
+      }
+      function playV() {
+        ve.playbackRate = parseFloat(speedSel.value) || 1;
+        ve.play().catch(() => {});
+        playing = true;
+        playBtn.textContent = "⏸";
+        playBtn.classList.add("on");
+        tryDetectFpsViaPlayback();
+        if (typeof ve.requestVideoFrameCallback === "function") {
+          let lastPF = -1;
+          const onFrame = (now, meta) => {
+            if (!playing) return;
+            if (meta.presentedFrames === lastPF) {
+              ve.requestVideoFrameCallback(onFrame);
+              return;
+            }
+            lastPF = meta.presentedFrames;
+            if (_playBaseFrames < 0) {
+              _playBaseFrames = meta.presentedFrames;
+              _playBaseVideoFrame = currentFrame;
+            }
+            currentFrame = _playBaseVideoFrame + (meta.presentedFrames - _playBaseFrames);
+            if (currentFrame >= totalFrames - 1) {
+              currentFrame = totalFrames - 1;
+              updateHUD();
+              pauseV();
+              return;
+            }
+            updateHUD();
+            ve.requestVideoFrameCallback(onFrame);
+          };
+          _playBaseFrames = -1;
+          ve.requestVideoFrameCallback(onFrame);
+        } else {
+          rafLoop();
+        }
+      }
+      function pauseV() {
+        ve.pause();
+        playing = false;
+        playBtn.textContent = "▶";
+        playBtn.classList.remove("on");
+        cancelAnimationFrame(rafId);
+        _playBaseFrames = -1;
+        _confirmedMediaTime = -1;
+        updateHUD();
+      }
+      function rafLoop() {
+        currentFrame = timeToFrame(ve.currentTime);
+        updateHUD();
+        if (playing) rafId = requestAnimationFrame(rafLoop);
+      }
+      ve.addEventListener("ended", () => pauseV());
+      speedSel.addEventListener("change", () => {
+        if (playing) ve.playbackRate = parseFloat(speedSel.value) || 1;
+      });
+
+      // ── Step ──
+      function stepF(d) {
+        if (!vW) return;
+        if (playing) pauseV();
+        seekToFrame(Math.max(0, Math.min(totalFrames - 1, currentFrame + d)));
+      }
+
+      // ── Slider ──
+      sl.addEventListener("mousedown", () => {
+        if (playing) pauseV();
+      });
+      sl.addEventListener("input", () => {
+        if (!vW) return;
+        seekToFrame(Math.round((sl.value / 10000) * (totalFrames - 1)));
+      });
+      ve.addEventListener("seeked", () => {
+        if (!playing && totalFrames > 1) sl.value = (currentFrame / (totalFrames - 1)) * 10000;
+      });
+      ve.addEventListener("timeupdate", () => {
+        if (playing && ve.duration && typeof ve.requestVideoFrameCallback !== "function") sl.value = (ve.currentTime / ve.duration) * 10000;
+      });
+
+      // ── HUD ──
+      function updateHUD() {
+        if (!vW) return;
+        G("ctd").textContent = fmtSec(currentFrame / getFPS());
+        G("hf").textContent = currentFrame;
+        G("ht").textContent = (currentFrame / getFPS()).toFixed(2) + "s";
+      }
+      function fmtSec(s) {
+        if (!s || isNaN(s)) return "0:00.000";
+        const m = Math.floor(s / 60),
+          sec = s % 60;
+        return `${m}:${String(Math.floor(sec)).padStart(2, "0")}.${String(Math.round((sec % 1) * 1000)).padStart(3, "0")}`;
+      }
+
+      // ── Lines (on lc canvas, video-pixel coords) ──
+      // Distance from point (px,py) to segment (ax,ay)-(bx,by)
+      function distToSegment(px, py, ax, ay, bx, by) {
+        const dx = bx - ax,
+          dy = by - ay;
+        const lenSq = dx * dx + dy * dy;
+        if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+        const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+        return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+      }
+      function screenToVideo(sx, sy) {
+        const r = vp.getBoundingClientRect();
+        const x = Math.round(((sx - r.left - vx) / vsc / rW) * vW);
+        const y = Math.round(((sy - r.top - vy) / vsc / rH) * vH);
+        if (x < 0 || y < 0 || x >= vW || y >= vH) return null;
+        return { x, y };
+      }
+      function drawLines(guide) {
+        if (!vW) return;
+        lctx.clearRect(0, 0, lc.width, lc.height);
+        lctx.lineWidth = Math.max(1, (2 * (vW / rW)) / vsc);
+        lctx.setLineDash([]);
+        for (const ln of globalLines) {
+          lctx.strokeStyle = "#ef4444";
+          lctx.beginPath();
+          lctx.moveTo(ln.x1, ln.y1);
+          lctx.lineTo(ln.x2, ln.y2);
+          lctx.stroke();
+        }
+        if (guide) {
+          lctx.strokeStyle = "#22c55e";
+          lctx.setLineDash([5, 3]);
+          lctx.lineWidth = Math.max(1, (1.5 * (vW / rW)) / vsc);
+          lctx.beginPath();
+          lctx.moveTo(guide.x1, guide.y1);
+          lctx.lineTo(guide.x2, guide.y2);
+          lctx.stroke();
+          lctx.setLineDash([]);
+        }
+      }
+
+      // ── Mouse: pan / zoom / line draw ──
+      ccv.addEventListener("contextmenu", (e) => e.preventDefault());
+      ccv.addEventListener("mousedown", (e) => {
+        lx = e.clientX;
+        ly = e.clientY;
+        if (e.button === 0) {
+          leftDown = true;
+          if (!rightDown && vW) {
+            const v = screenToVideo(e.clientX, e.clientY);
+            if (v) {
+              drawMode = true;
+              drawStart = v;
+            }
+          }
+        }
+        if (e.button === 2) {
+          rightDown = true;
+          rdY = e.clientY;
+          rdSc = vsc;
+          if (!leftDown && vW) {
+            const v = screenToVideo(e.clientX, e.clientY);
+            if (v) {
+              // 線分との距離で最近傍の線を探す（ビデオピクセル座標で判定）
+              const thresh = (8 * (vW / rW)) / vsc; // 画面上8px相当をビデオpxに換算
+              let near = null,
+                minD = Infinity;
+              for (const ln of globalLines) {
+                const d = distToSegment(v.x, v.y, ln.x1, ln.y1, ln.x2, ln.y2);
+                if (d < minD) {
+                  minD = d;
+                  near = ln;
+                }
+              }
+              if (near && minD < thresh) {
+                globalLines = globalLines.filter((l) => l !== near);
+                drawLines();
+              }
+            }
+          }
+          drawMode = false;
+        }
+        e.preventDefault();
+      });
+      window.addEventListener("mouseup", (e) => {
+        if (e.button === 0) {
+          if (drawMode && drawStart && vW) {
+            const v = screenToVideo(e.clientX, e.clientY);
+            if (v && Math.hypot(v.x - drawStart.x, v.y - drawStart.y) > 2) globalLines.push({ x1: drawStart.x, y1: drawStart.y, x2: v.x, y2: v.y });
+            drawLines();
+          }
+          drawMode = false;
+          drawStart = null;
+          leftDown = false;
+        }
+        if (e.button === 2) rightDown = false;
+      });
+      ccv.addEventListener("mousemove", (e) => {
+        const dx = e.clientX - lx,
+          dy = e.clientY - ly;
+        if (leftDown && rightDown) {
+          vx += dx;
+          vy += dy;
+          applyView();
+        } else if (rightDown && !drawMode) {
+          const ns = Math.max(0.1, Math.min(20, rdSc * Math.pow(1.004, -(e.clientY - rdY))));
+          const r = vp.getBoundingClientRect(),
+            ox = e.clientX - r.left,
+            oy = e.clientY - r.top;
+          vx = ox - (ox - vx) * (ns / vsc);
+          vy = oy - (oy - vy) * (ns / vsc);
+          vsc = ns;
+          applyView();
+        }
+        if (drawMode && drawStart && vW) {
+          const v = screenToVideo(e.clientX, e.clientY);
+          if (v) drawLines({ x1: drawStart.x, y1: drawStart.y, x2: v.x, y2: v.y });
+        }
+        lx = e.clientX;
+        ly = e.clientY;
+      });
+      ccv.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          if (vW) stepF(e.deltaY > 0 ? 1 : -1);
+        },
+        { passive: false },
+      );
+
+      // ── Mark frame ──
+      function markFrame() {
+        if (!vW) return;
+
+        if (selectedDist) {
+          const lanes = [...activeLanes]
+            .map(Number)
+            .sort((a, b) => a - b)
+            .map(String);
+          const byLabel = {};
+          for (const ln of lanes) byLabel[ln] = [];
+          for (const e of markedFrames) if (activeLanes.has(e.label)) byLabel[e.label].push(e.frame);
+          const totalRecorded = lanes.reduce((s, ln) => s + byLabel[ln].length, 0);
+
+          // ── 1回目: スタートフレームを全アクティブレーンに記録 ──
+          if (totalRecorded === 0) {
+            for (const ln of lanes) {
+              if (!markedFrames.some((x) => x.label === ln && x.frame === currentFrame)) {
+                markedFrames.push({ label: ln, frame: currentFrame });
+              }
+            }
+            markedFrames.sort((a, b) => a.frame - b.frame);
+            refreshRecords();
+            showToast(`[スタート] ${getRecordMode() === "time" ? frameToSec(currentFrame) : "フレーム" + currentFrame} → 全${lanes.length}レーン`);
+            return;
+          }
+
+          // ── 2回目以降: 選択中のレーン(currentLabel)のみ記録 ──
+          // 何番目の計測点かをラベル名で表示するために計算
+          const allF = markedFrames.filter((e) => activeLanes.has(e.label)).map((e) => e.frame);
+          const sf = allF.length ? Math.min(...allF) : null;
+          const nDone = (byLabel[currentLabel] || []).filter((f) => f !== sf).length;
+          const dl = DIST_LABELS[selectedDist] || [];
+          const evtLabel = dl[nDone] || `計測${nDone + 1}`;
+
+          const dup = markedFrames.some((x) => x.label === currentLabel && x.frame === currentFrame);
+          if (!dup) {
+            markedFrames.push({ label: currentLabel, frame: currentFrame });
+            markedFrames.sort((a, b) => a.frame - b.frame);
+            refreshRecords();
+            showToast(`[${evtLabel}] ${getRecordMode() === "time" ? frameToSec(currentFrame) : "フレーム" + currentFrame} → L${currentLabel}`);
+          }
+          return;
+        }
+
+        // 通常記録（距離なしモード）
+        const dup = markedFrames.some((x) => x.label === currentLabel && x.frame === currentFrame);
+        if (!dup) {
+          markedFrames.push({ label: currentLabel, frame: currentFrame });
+          markedFrames.sort((a, b) => a.frame - b.frame);
+          refreshRecords();
+          showToast(`記録: ラベル${currentLabel}  ${getRecordMode() === "time" ? frameToSec(currentFrame) : "フレーム" + currentFrame}`);
+        }
+      }
+
+      // ── Lane filter init ──
+      function initLaneFilter() {
+        const wrap = G("lane-checks");
+        wrap.innerHTML = "";
+        for (let i = 0; i < 10; i++) {
+          const lbl = document.createElement("label");
+          lbl.className = "lchk";
+          if (String(i) === currentLabel) {
+            lbl.style.border = "2px solid yellow";
+            lbl.style.background = "rgba(255,255,0,0.15)";
+            lbl.style.borderRadius = "4px";
+          }
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.value = String(i);
+          cb.checked = activeLanes.has(String(i));
+          cb.addEventListener("change", () => {
+            if (cb.checked) {
+              activeLanes.add(String(i));
+              currentLabel = String(i);
+              updateLabelUI();
+            } else {
+              activeLanes.delete(String(i));
+              refreshRecords();
+            }
+          });
+          const sp = document.createElement("span");
+          sp.textContent = "L" + i;
+          lbl.appendChild(cb);
+          lbl.appendChild(sp);
+          wrap.appendChild(lbl);
+        }
+      }
+      function setAllLanes(on) {
+        for (let i = 0; i < 10; i++) on ? activeLanes.add(String(i)) : activeLanes.delete(String(i));
+        // チェックボックスのUI同期
+        G("lane-checks")
+          .querySelectorAll("input[type=checkbox]")
+          .forEach((cb) => {
+            cb.checked = on;
+          });
+        refreshRecords();
+      }
+      initLaneFilter();
+      G("lane-all").onclick = () => setAllLanes(true);
+      G("lane-none").onclick = () => setAllLanes(false);
+
+      // ── Records UI ──
+      function refreshRecords() {
+        const grid = G("rec-grid");
+        grid.innerHTML = "";
+        G("rec-count").textContent = markedFrames.length;
+
+        const dl = getDistLabels();
+        // アクティブレーンのみ対象
+        const lanes = [...activeLanes]
+          .map(Number)
+          .sort((a, b) => a - b)
+          .map(String);
+
+        if (dl) {
+          // ── 距離モード：縦表示（ラベル行ごとに各レーンのフレームを横並べ） ──
+          grid.className = "mode-dist";
+          // ラベル列幅とセル幅をCSS変数で統一
+          {
+            const tmp = document.createElement("span");
+            tmp.style.cssText = "position:absolute;visibility:hidden;font-size:.58rem;font-weight:700;font-family:var(--ff);white-space:nowrap;";
+            document.body.appendChild(tmp);
+            // 全ラベル（Start + 距離ラベル）の最大幅を測定
+            const candidates = ["Start", ...(dl || [])];
+            let maxHdrW = 30;
+            for (const t of candidates) {
+              tmp.textContent = t;
+              maxHdrW = Math.max(maxHdrW, tmp.offsetWidth + 16);
+            }
+            // セル幅: L0テキスト幅ベース
+            tmp.style.fontSize = ".62rem";
+            tmp.textContent = "L0";
+            const tw = Math.max(tmp.offsetWidth + 14, 30);
+            document.body.removeChild(tmp);
+            grid.style.setProperty("--cell-w", tw + "px");
+            grid.style.setProperty("--hdr-w", maxHdrW + "px");
+          }
+          const byLabel = {};
+          for (let i = 0; i < 10; i++) byLabel[String(i)] = [];
+          for (const e of markedFrames) if (activeLanes.has(e.label)) byLabel[e.label].push(e.frame);
+          for (const v of Object.values(byLabel)) v.sort((a, b) => a - b);
+
+          // スタートフレーム: 全レーン共通の最小フレームを取得
+          const allFrames = markedFrames.filter((e) => activeLanes.has(e.label)).map((e) => e.frame);
+          const startFrame = allFrames.length ? Math.min(...allFrames) : null;
+
+          // スタートフレームを各レーンのbyLabelから除外してインデックスを合わせる
+          const byLabelRest = {};
+          for (let i = 0; i < 10; i++) byLabelRest[String(i)] = [];
+          for (const ln of lanes) {
+            byLabelRest[ln] = byLabel[ln].filter((f) => f !== startFrame);
+          }
+
+          // ヘッダー行（レーン番号）
+          if (lanes.length > 0) {
+            const hdrRow = document.createElement("div");
+            hdrRow.className = "dist-row";
+            const hdrCell = document.createElement("div");
+            hdrCell.className = "dist-row-hdr";
+            hdrCell.textContent = "ラベル";
+            hdrCell.style.textAlign = "right";
+            hdrCell.style.color = "var(--tx2)";
+            hdrRow.appendChild(hdrCell);
+            const cells = document.createElement("div");
+            cells.className = "dist-row-cells";
+            for (const ln of lanes) {
+              const b = document.createElement("div");
+              b.className = "lc" + ln;
+              b.style.cssText = "width:var(--cell-w,30px);height:26px;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;flex-shrink:0;";
+              b.textContent = "L" + ln;
+
+              if (ln === currentLabel) {
+                b.style.border = "2px solid yellow";
+                b.style.background = "rgba(255,255,0,0.25)";
+              }
+
+              cells.appendChild(b);
+            }
+            hdrRow.appendChild(cells);
+            grid.appendChild(hdrRow);
+          }
+
+          // Start行（全レーン共通）
+          if (startFrame !== null) {
+            const row = document.createElement("div");
+            row.className = "dist-row";
+            const hdr = document.createElement("div");
+            hdr.className = "dist-row-hdr";
+            hdr.textContent = "Start";
+            row.appendChild(hdr);
+            const cells = document.createElement("div");
+            cells.className = "dist-row-cells";
+            for (const ln of lanes) {
+              cells.appendChild(makeDistRI(startFrame, ln, -1));
+            }
+            row.appendChild(cells);
+            grid.appendChild(row);
+          }
+
+          // 距離ラベル行（スタート除いたインデックスで表示）
+          for (let ri = 0; ri < dl.length; ri++) {
+            const rowLabel = dl[ri];
+            const row = document.createElement("div");
+            row.className = "dist-row";
+            const hdr = document.createElement("div");
+            hdr.className = "dist-row-hdr";
+            hdr.textContent = rowLabel;
+            row.appendChild(hdr);
+            const cells = document.createElement("div");
+            cells.className = "dist-row-cells";
+            for (const ln of lanes) {
+              const f = byLabelRest[ln][ri];
+              if (f === undefined) {
+                const empty = document.createElement("div");
+                empty.style.cssText = "width:var(--cell-w,30px);height:26px;flex-shrink:0;";
+                cells.appendChild(empty);
+                continue;
+              }
+              cells.appendChild(makeDistRI(f, ln, ri));
+            }
+            row.appendChild(cells);
+            grid.appendChild(row);
+          }
+        } else {
+          // ── レーンモード：横グリッド（従来）、アクティブレーンのみ表示 ──
+          grid.className = "mode-lane";
+          grid.style.gridTemplateColumns = `repeat(${Math.max(lanes.length, 1)},1fr)`;
+          const allF = markedFrames.map((e) => e.frame);
+          const gFirst = allF.length ? Math.min(...allF) : null;
+          const byLabel = {};
+          for (let i = 0; i < 10; i++) byLabel[String(i)] = [];
+          for (const e of markedFrames) byLabel[e.label].push(e.frame);
+
+          for (const lbl of lanes) {
+            const name = labelNames[lbl] || lbl;
+            const isActive = lbl === currentLabel;
+            const col = document.createElement("div");
+            col.className = "rcol";
+            const hdr = document.createElement("div");
+            hdr.className = "rch lc" + lbl + (isActive ? " active bc" + lbl : "");
+
+            if (isActive) {
+              hdr.style.border = "2px solid yellow";
+              hdr.style.background = "rgba(255,255,0,0.25)";
+            }
+
+            hdr.textContent = "L" + lbl + (name !== lbl ? " " + name : "");
+            col.appendChild(hdr);
+            if (gFirst !== null) col.appendChild(makeRI(gFirst, lbl, true));
+            for (const f of (byLabel[lbl] || []).sort((a, b) => a - b)) if (f !== gFirst) col.appendChild(makeRI(f, lbl, false));
+            grid.appendChild(col);
+          }
+        }
+        updateGraphButton();
+      }
+
+      function makeRI(frame, label, isStart) {
+        const el = document.createElement("div");
+        el.className = "ri" + (isStart ? " sf" : "");
+        el.textContent = displayVal(frame);
+        el.onclick = () => {
+          if (vW) seekToFrame(frame);
+        };
+        if (label === currentLabel) {
+          el.style.border = "2px solid yellow";
+          el.style.background = "rgba(255,255,0,0.15)";
+        }
+        el.onclick = () => {
+          if (vW) seekToFrame(frame);
+        };
+
+        const dx = document.createElement("button");
+        dx.className = "dx";
+        dx.textContent = "✕";
+        dx.onclick = (ev) => {
+          ev.stopPropagation();
+          markedFrames = markedFrames.filter((e) => !(e.label === label && e.frame === frame));
+          refreshRecords();
+        };
+        el.appendChild(dx);
+        return el;
+      }
+
+      function makeDistRI(frame, lane, rowIdx) {
+        const el = document.createElement("div");
+        el.className = "dist-ri";
+        // 数字のみ・レーンカラーで表示
+        const numEl = document.createElement("span");
+        numEl.style.fontSize = ".7rem";
+        numEl.style.fontWeight = "700";
+        numEl.style.color = LANE_COLORS[parseInt(lane) % 10];
+        numEl.style.pointerEvents = "none";
+        // フレーム番号 or 時間で表示
+        if (getRecordMode() === "time") {
+          const t = (frame / getFPS()).toFixed(2);
+          numEl.textContent = t.length > 5 ? t.slice(0, 5) : t;
+        } else {
+          const s = String(frame);
+          numEl.textContent = s.length > 3 ? s.slice(0, 3) + "." : s;
+        }
+        el.appendChild(numEl);
+        // 全フレーム番号（hover時tooltip）
+        const tip = document.createElement("span");
+        tip.className = "frame-num";
+        tip.textContent = getRecordMode() === "time" ? displayVal(frame) + "s" : frame + "f";
+        el.appendChild(tip);
+        el.onclick = () => {
+          if (vW) seekToFrame(frame);
+        };
+        const dx = document.createElement("button");
+        dx.className = "dx";
+        dx.textContent = "✕";
+        dx.onclick = (ev) => {
+          ev.stopPropagation();
+          markedFrames = markedFrames.filter((e) => !(e.label === lane && e.frame === frame));
+          refreshRecords();
+        };
+        el.appendChild(dx);
+        return el;
+      }
+
+      // ── Save CSV ──
+      function saveCSV() {
+        if (!vW) {
+          showToast("動画が読み込まれていません");
+          return;
+        }
+        const byLabel = {};
+        for (let i = 0; i < 10; i++) byLabel[String(i)] = [];
+        for (const e of markedFrames) byLabel[e.label].push(e.frame);
+        for (const v of Object.values(byLabel)) v.sort((a, b) => a - b);
+        const allF = markedFrames.map((e) => e.frame);
+        const first = allF.length ? Math.min(...allF) : null;
+        // スタートフレームを除いた残りフレームでmaxLenを計算
+        const restByLabel = {};
+        for (const lbl of Object.keys(byLabel)) restByLabel[lbl] = byLabel[lbl].filter((f) => f !== first);
+        const maxLen = Math.max(...Object.values(restByLabel).map((v) => v.length), 0);
+        const isTime = getRecordMode() === "time";
+        const fps = getFPS();
+        // フレーム→出力値変換
+        // 時間モードはスタートフレームを0.000sとした相対時間
+        const startF = isTime && first != null ? first : 0;
+        const toVal = (f) => (isTime ? Math.max(0, (f - startF) / fps).toFixed(2) : f);
+        const colHdr = isTime ? ["Label", "Start_sec", ...Array.from({ length: maxLen }, (_, i) => `Time${i + 1}`)] : ["Label", "Start", ...getFrameHeaders(maxLen)];
+        const rows = [colHdr];
+        for (const lbl of Object.keys(byLabel).sort()) {
+          const rest = restByLabel[lbl];
+          const startVal = isTime ? "0.00" : first != null ? toVal(first) : "";
+          rows.push([lbl, startVal, ...rest.map(toVal), ...Array(Math.max(0, maxLen - rest.length)).fill("")]);
+        }
+        // 公式タイムがあれば末尾に追記（レーン別）
+        const tf = selectedDist ? TIME_FIELDS[selectedDist] : null;
+        const lanesWithData = tf
+          ? Object.keys(timeValues)
+              .filter((ln) => tf.some((k) => timeValues[ln] && timeValues[ln][k]))
+              .sort()
+          : [];
+        if (tf && lanesWithData.length > 0) {
+          rows.push([]);
+          rows.push(["--- 公式タイム ---"]);
+          rows.push(["項目", ...lanesWithData.map((ln) => "L" + ln)]);
+          for (const k of tf) {
+            rows.push([k, ...lanesWithData.map((ln) => (timeValues[ln] && timeValues[ln][k]) || "")]);
+          }
+        }
+        dlText(rows.map((r) => r.join(",")).join("\n"), (currentFileName || "video") + "_labels.csv");
+        if (globalLines.length) dlText(["x1,y1,x2,y2", ...globalLines.map((l) => `${Math.round(l.x1)},${Math.round(l.y1)},${Math.round(l.x2)},${Math.round(l.y2)}`)].join("\n"), (currentFileName || "video") + "_lines.csv");
+        showToast("CSVを保存しました");
+      }
+      function dlText(text, name) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob(["\uFEFF" + text], { type: "text/csv;charset=utf-8;" }));
+        a.download = name;
+        a.click();
+      }
+
+      // ── Import CSV ──
+      G("btn-load-csv").onclick = () => G("csvfi").click();
+      G("csvfi").onchange = () => {
+        if (G("csvfi").files[0]) importCSV(G("csvfi").files[0]);
+        G("csvfi").value = "";
+      };
+      function importCSV(file) {
+        const r = new FileReader();
+        r.onload = (e) => {
+          const text = e.target.result.replace(/^\uFEFF/, "").trim();
+          const lines = text.split(/\r?\n/);
+          if (!lines.length) return;
+
+          const header = lines[0].toLowerCase().replace(/\s/g, "");
+
+          // ── 線CSV判定: ヘッダーが x1,y1,x2,y2 を含む ──
+          if (header.includes("x1") && header.includes("y1") && header.includes("x2") && header.includes("y2")) {
+            const cols = lines[0].split(",").map((h) => h.trim().toLowerCase());
+            const ix = cols.indexOf("x1"),
+              iy = cols.indexOf("y1"),
+              ix2 = cols.indexOf("x2"),
+              iy2 = cols.indexOf("y2");
+            const loaded = [];
+            lines.slice(1).forEach((line) => {
+              const row = line.split(",");
+              if (row.length < 4) return;
+              const x1 = parseFloat(row[ix]),
+                y1 = parseFloat(row[iy]),
+                x2 = parseFloat(row[ix2]),
+                y2 = parseFloat(row[iy2]);
+              if ([x1, y1, x2, y2].every((v) => !isNaN(v))) loaded.push({ x1, y1, x2, y2 });
+            });
+            if (loaded.length) {
+              globalLines = loaded;
+              drawLines();
+              showToast("線CSV読み込み: " + loaded.length + "本");
+            } else {
+              showToast("線CSVにデータがありません");
+            }
+            return;
+          }
+
+          // ── ラベルCSV（フレーム番号形式: Label,Start,Frame1,... または時間形式: Label,Start_sec,Time1,...） ──
+          const headerCols = lines[0].split(",").map((h) => h.trim().toLowerCase());
+          const isTimeCsv = headerCols[1] === "start_sec" || headerCols.some((h) => h.startsWith("time"));
+          const fps = getFPS();
+          markedFrames = [];
+          lines.slice(1).forEach((line) => {
+            const row = line.split(",");
+            if (row.length < 2) return;
+            const label = row[0].trim();
+            [row[1], ...row.slice(2)].forEach((v) => {
+              v = v.trim();
+              if (!v) return;
+              if (isTimeCsv) {
+                const t = parseFloat(v);
+                // 相対時間→フレーム番号（スタート=0秒=フレーム0として復元）
+                if (!isNaN(t)) markedFrames.push({ label, frame: Math.round(t * fps) });
+              } else {
+                const f = parseInt(v);
+                if (!isNaN(f)) markedFrames.push({ label, frame: f });
+              }
+            });
+          });
+          markedFrames.sort((a, b) => a.frame - b.frame);
+          refreshRecords();
+          showToast(`CSV読み込み: ${markedFrames.length}件`);
+        };
+        r.readAsText(file, "utf-8");
+      }
+
+      // ── Buttons ──
+      playBtn.onclick = togglePlay;
+      G("btn-p1").onclick = () => stepF(-1);
+      G("btn-n1").onclick = () => stepF(1);
+      G("btn-pf").onclick = () => stepF(-8);
+      G("btn-nf").onclick = () => stepF(8);
+      G("btn-mark").onclick = markFrame;
+      G("btn-save").onclick = saveCSV;
+      G("btn-clear-lines").onclick = () => {
+        globalLines = [];
+        drawLines();
+        showToast("線をクリアしました");
+      };
+      G("btn-clear-all").onclick = () => {
+        if (!markedFrames.length || confirm("全記録を削除しますか？")) {
+          markedFrames = [];
+          refreshRecords();
+        }
+      };
+
+      // ── Keyboard ──
+      document.addEventListener("keydown", (e) => {
+        if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
+        switch (e.key) {
+          case "ArrowRight":
+            e.preventDefault();
+            stepF(1);
+            break;
+          case "ArrowLeft":
+            e.preventDefault();
+            stepF(-1);
+            break;
+          case "f":
+          case "F":
+            if (vW) stepF(8);
+            break;
+          case "d":
+          case "D":
+            if (vW) stepF(-8);
+            break;
+          case "g":
+          case "G":
+            if (vW) stepF(60);
+            break;
+          case "a":
+          case "A":
+            if (vW) stepF(-60);
+            break;
+          case "r":
+          case "R":
+            markFrame();
+            break;
+          case "s":
+          case "S":
+            saveCSV();
+            break;
+          case " ":
+            e.preventDefault();
+            togglePlay();
+            break;
+          case "t":
+          case "T": {
+            let n = parseInt(currentLabel);
+            if (e.shiftKey) {
+              n = (n + 9) % 10;
+            } else {
+              n = (n + 1) % 10;
+            }
+            currentLabel = String(n);
+            syncLaneCheckboxUI();
+            updateLabelUI();
+            break;
+          }
+          case "j":
+          case "J": {
+            if (!vW) break;
+            const fut = markedFrames.filter((e) => e.frame > currentFrame).map((e) => e.frame);
+            fut.length ? seekToFrame(Math.min(...fut)) : showToast("次の記録フレームはありません");
+            break;
+          }
+          case "Enter": {
+            if (activeLanes.has(currentLabel)) {
+              activeLanes.delete(currentLabel);
+            } else {
+              activeLanes.add(currentLabel);
+            }
+            syncLaneCheckboxUI();
+            refreshRecords();
+            break;
+          }
+        }
+      });
+
+      // ── Toast ──
+      let toastTimer;
+      function showToast(msg) {
+        const t = G("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("show"), 2500);
+      }
+
+      // Init
+      updateLabelUI();
+      refreshRecords();
+      window.addEventListener("load", () => {
+        document.body.focus();
+      });
+    </script>
+  </body>
+</html>

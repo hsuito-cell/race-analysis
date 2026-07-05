@@ -1,0 +1,1643 @@
+# 2026.05.24 Hiroshi Suito 作成 # Claude codeでコード修正済み
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>動画比較</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #111;
+        --panel: #1c1c1e;
+        --b1: #2c2c2e;
+        --b2: #3a3a3c;
+        --accent: #4a9eff;
+        --green: #30d158;
+        --red: #ff453a;
+        --orange: #ff9f0a;
+        --tx: #e5e5ea;
+        --tx2: #8e8e93;
+      }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--tx);
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        font-size: 14px;
+        -webkit-user-select: none;
+        user-select: none;
+        overscroll-behavior: none;
+      }
+      .vwrap {
+        touch-action: none; /* ←ここに限定 */
+      }
+
+      /* ── レイアウト ── */
+      #app {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        height: 100dvh;
+      }
+
+      /* ── ヘッダー ── */
+      #hdr {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 10px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--b1);
+        flex-shrink: 0;
+      }
+      #hdr-title {
+        font-size: 0.8rem;
+        font-weight: bold;
+        color: var(--tx2);
+      }
+      #hdr-btns {
+        display: flex;
+        gap: 6px;
+      }
+
+      /* ── 動画エリア ── */
+      #videos {
+        flex: 1;
+        display: flex;
+        background: #000;
+        gap: 2px;
+        min-height: 0;
+      }
+      #videos.row {
+        flex-direction: row;
+      }
+      #videos.col {
+        flex-direction: column;
+      }
+      .vslot {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+      }
+      .vwrap {
+        flex: 1;
+        position: relative;
+        background: #000;
+        overflow: hidden;
+        min-height: 0;
+      }
+      video.vvid {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        transform-origin: center center; /* ←追加 */
+      }
+      .vov {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        cursor: pointer;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 3;
+      }
+      .vov .icon {
+        font-size: 2rem;
+      }
+      .vov .label {
+        font-size: 0.72rem;
+        color: var(--tx2);
+      }
+      .vov .badge {
+        font-size: 0.6rem;
+        background: var(--b2);
+        padding: 2px 8px;
+        border-radius: 8px;
+        color: var(--tx2);
+      }
+      .vtap {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        inset: 0;
+        z-index: 4;
+        display: none;
+        cursor: pointer;
+      }
+      .vbar {
+        background: rgba(0, 0, 0, 0.8);
+        padding: 2px 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+        min-height: 20px;
+      }
+      .vname {
+        font-size: 0.6rem;
+        color: var(--tx2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 65%;
+      }
+      .vtime {
+        font-size: 0.62rem;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+      }
+      .vbtn-change {
+        font-size: 0.55rem;
+        background: var(--b2);
+        border: 1px solid var(--b1);
+        color: var(--tx2);
+        border-radius: 4px;
+        padding: 1px 6px;
+        cursor: pointer;
+      }
+
+      /* ── コントロール ── */
+      #ctrl {
+        flex-shrink: 0;
+        background: var(--panel);
+        border-top: 1px solid var(--b1);
+        padding: 8px 10px;
+      }
+      .sl-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 7px;
+      }
+      .sl-row input[type="range"] {
+        flex: 1;
+        height: 4px;
+        accent-color: var(--accent);
+      }
+      #cur-time {
+        font-size: 0.7rem;
+        font-variant-numeric: tabular-nums;
+        color: var(--accent);
+        min-width: 62px;
+      }
+      #dur-time {
+        font-size: 0.65rem;
+        color: var(--tx2);
+        min-width: 36px;
+        text-align: right;
+      }
+      .btn-row {
+        display: flex;
+        gap: 5px;
+        justify-content: center;
+        align-items: center;
+      }
+      .btn-row + .btn-row {
+        margin-top: 5px;
+      }
+      button {
+        background: var(--b1);
+        color: var(--tx);
+        border: 1px solid var(--b2);
+        border-radius: 7px;
+        padding: 7px 11px;
+        font-size: 0.7rem;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: opacity 0.1s;
+      }
+      button:active {
+        opacity: 0.6;
+      }
+      button.accent {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      button.green {
+        background: var(--green);
+        color: #fff;
+        border-color: var(--green);
+      }
+      button.danger {
+        background: var(--red);
+        color: #fff;
+        border-color: var(--red);
+      }
+      .btn-main {
+        padding: 10px 22px;
+        font-size: 1rem;
+        font-weight: bold;
+      }
+
+      /* ── 開始フレーム設定モーダル ── */
+      #sf-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.88);
+        z-index: 100;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-end;
+      }
+      #sf-modal.open {
+        display: flex;
+      }
+      #sf-sheet {
+        background: var(--panel);
+        border-top: 1px solid var(--b2);
+        border-radius: 16px 16px 0 0;
+        padding: 14px 12px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 88vh;
+        max-height: 88dvh;
+      }
+      #sf-title {
+        font-size: 0.85rem;
+        font-weight: bold;
+        text-align: center;
+        color: var(--tx);
+      }
+      #sf-subtitle {
+        font-size: 0.65rem;
+        color: var(--tx2);
+        text-align: center;
+        margin-top: -6px;
+      }
+      #sf-wrap {
+        flex: 1;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        min-height: 100px;
+      }
+      #sf-vid {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+      .sf-sl-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #sf-sl {
+        flex: 1;
+        accent-color: var(--accent);
+      }
+      #sf-time {
+        font-size: 0.72rem;
+        color: var(--accent);
+        min-width: 70px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      #sf-info {
+        font-size: 0.65rem;
+        color: var(--tx2);
+        text-align: center;
+      }
+      .sf-btns {
+        display: flex;
+        gap: 8px;
+      }
+      .sf-btns button {
+        flex: 1;
+      }
+
+      /* ── 再選択メニュー ── */
+      #vmenu {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 90;
+        align-items: center;
+        justify-content: center;
+      }
+      #vmenu.open {
+        display: flex;
+      }
+      #vmenu-sheet {
+        background: var(--panel);
+        border: 1px solid var(--b2);
+        border-radius: 14px;
+        padding: 14px;
+        min-width: 220px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      #vmenu-title {
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-align: center;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--b1);
+      }
+      .vmenu-btn {
+        text-align: center;
+        font-size: 0.8rem;
+      }
+
+      /* ── トースト ── */
+      #toast {
+        position: fixed;
+        bottom: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(30, 30, 30, 0.92);
+        color: #fff;
+        padding: 5px 16px;
+        border-radius: 14px;
+        font-size: 0.72rem;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 300;
+        white-space: nowrap;
+        border: 1px solid var(--b2);
+      }
+      #toast.show {
+        opacity: 1;
+      }
+
+      /* ── 同期ズレ警告 ── */
+      #sync-warn {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        background: rgba(255, 159, 10, 0.9);
+        color: #000;
+        font-size: 0.55rem;
+        padding: 2px 6px;
+        border-radius: 6px;
+        display: none;
+        pointer-events: none;
+        z-index: 5;
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;  /* 描画モード時は JS で auto に切替 */
+        z-index: 5;            /* vtap(4)・vov(3)・video すべての上 */
+        cursor: default;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- ヘッダー -->
+      <div id="hdr">
+        <span id="hdr-title">🎬 動画比較</span>
+        <div id="hdr-btns">
+          <button id="btn-layout">⇅ 縦並び</button>
+          <button id="btn-fps">60fps</button>
+          <button id="btn-line">✏️ 線</button>
+          <button id="btn-angle">📐 角度</button>
+          <button id="btn-clear">🗑 線クリア</button>
+        </div>
+      </div>
+
+      <!-- 動画エリア -->
+      <div id="videos" class="row">
+        <!-- スロット A -->
+        <div class="vslot" id="slot0">
+          <div class="vwrap" id="vwrap0">
+            <video class="vvid" id="v0" preload="metadata" playsinline webkit-playsinline></video>
+            <canvas class="overlay" id="cv0"></canvas>
+            <div class="vov" id="ov0">
+              <div class="icon">🎬</div>
+              <div class="label">動画 A</div>
+              <div class="badge">タップorドラッグ＆ドロップして選択</div>
+            </div>
+            <div class="vtap" id="tap0"></div>
+            <div id="sync-warn">ズレ検出</div>
+          </div>
+          <div class="vbar">
+            <span class="vname" id="name0">動画 A</span>
+            <span class="vtime" id="time0">--:---.---</span>
+            <button class="vbtn-change" id="chg0" style="display: none">変更</button>
+          </div>
+        </div>
+
+        <!-- スロット B -->
+        <div class="vslot" id="slot1">
+          <div class="vwrap" id="vwrap1">
+            <video class="vvid" id="v1" preload="metadata" playsinline webkit-playsinline></video>
+            <canvas class="overlay" id="cv1"></canvas>
+            <div class="vov" id="ov1">
+              <div class="icon">🎬</div>
+              <div class="label">動画 B</div>
+              <div class="badge">タップして選択</div>
+            </div>
+            <div class="vtap" id="tap1"></div>
+          </div>
+          <div class="vbar">
+            <span class="vname" id="name1">動画 B</span>
+            <span class="vtime" id="time1">--:---.---</span>
+            <button class="vbtn-change" id="chg1" style="display: none">変更</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- コントロール -->
+      <div id="ctrl">
+        <div class="sl-row">
+          <span id="cur-time">0:00.000</span>
+          <input type="range" id="master-sl" min="0" max="10000" value="0" />
+          <span id="dur-time">0:00</span>
+        </div>
+        <div class="btn-row">
+          <button id="btn-p10">◀10f</button>
+          <button id="btn-p1">◀1f</button>
+          <button id="btn-play" class="btn-main accent">▶</button>
+          <button id="btn-n1">1f▶</button>
+          <button id="btn-n10">10f▶</button>
+        </div>
+        <div class="btn-row">
+          <button id="btn-resync">↺ 同期リセット</button>
+          <button id="btn-speed">1×</button>
+          <button id="btn-offset">オフセット調整</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 開始フレーム設定モーダル -->
+    <div id="sf-modal">
+      <div id="sf-sheet">
+        <div id="sf-title">開始フレームを設定</div>
+        <div id="sf-subtitle">再生開始したい位置にスライダーを合わせてください</div>
+        <div id="sf-wrap">
+          <video id="sf-vid" preload="metadata" playsinline webkit-playsinline></video>
+        </div>
+        <div class="sf-sl-row">
+          <input type="range" id="sf-sl" min="0" max="10000" value="0" />
+          <span id="sf-time">0:00.000</span>
+        </div>
+        <div id="sf-info">フレーム 0</div>
+        <div class="sf-btns">
+          <button id="sf-cancel">キャンセル</button>
+          <button id="sf-ok" class="green">✓ この位置から再生</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 再選択・開始フレーム変更メニュー -->
+    <div id="vmenu">
+      <div id="vmenu-sheet">
+        <div id="vmenu-title"></div>
+        <button class="vmenu-btn" id="vmenu-reselect">📁 別の動画を選択</button>
+        <button class="vmenu-btn" id="vmenu-startframe">⏱ 開始フレームを変更</button>
+        <button class="vmenu-btn" id="vmenu-close">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- トースト -->
+    <div id="toast"></div>
+
+    <!-- ファイル入力 -->
+    <input type="file" id="fi0" accept="video/*" style="display: none" />
+    <input type="file" id="fi1" accept="video/*" style="display: none" />
+
+    <script>
+      "use strict";
+      const G = (id) => document.getElementById(id);
+
+      // ══════════════════════════════════════════════
+      // 状態管理
+      // ══════════════════════════════════════════════
+      const vs = [
+        {
+          vid: G("v0"),
+          ov: G("ov0"),
+          tap: G("tap0"),
+          nameEl: G("name0"),
+          timeEl: G("time0"),
+          chgBtn: G("chg0"),
+          blobUrl: null,
+          startTime: 0,
+          loaded: false,
+          name: "動画A",
+          label: "動画 A",
+        },
+        {
+          vid: G("v1"),
+          ov: G("ov1"),
+          tap: G("tap1"),
+          nameEl: G("name1"),
+          timeEl: G("time1"),
+          chgBtn: G("chg1"),
+          blobUrl: null,
+          startTime: 0,
+          loaded: false,
+          name: "動画B",
+          label: "動画 B",
+        },
+      ];
+
+      let playing = false;
+      let masterTime = 0; // 現在の再生位置（開始フレームからの相対秒）
+      let masterDur = 0; // マスター再生可能時間
+      let fps = 60; // フレームレート（フレーム送り用）
+      let playbackRate = 1; // 再生速度
+      let layout = "row"; // 'row' | 'col'
+      let rafId = null;
+      let toastTimer = null;
+      let warnTimer = null;
+      let sfPendingIdx = -1; // モーダル対象スロット番号
+      let vmenuIdx = -1; // メニュー対象スロット番号
+      const drawings = [[], []];
+      const drawModes = [false, false];
+      const startPts = [null, null];
+      let mode = "none"; // "line" or "angle"
+      const measureStep = [0, 0];
+      const tempStart  = [null, null];   // 後方互換のため残す
+      const tempPoints = [[], []];       // 各パネルの途中クリック点
+
+      // ══════════════════════════════════════════════
+      // ユーティリティ
+      // ══════════════════════════════════════════════
+      function fmtMs(s) {
+        if (!isFinite(s) || s < 0) return "0:00.000";
+        const m = Math.floor(s / 60);
+        const ss = (s - m * 60).toFixed(3).padStart(6, "0");
+        return `${m}:${ss}`;
+      }
+      function fmtSec(s) {
+        if (!isFinite(s) || s < 0) return "0:00";
+        return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+      }
+      function shortenName(n, max = 18) {
+        return n.length > max ? n.slice(0, max) + "…" : n;
+      }
+      function showToast(msg) {
+        const t = G("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+      }
+      function btn(id, fn) {
+        const el = G(id);
+        el.addEventListener("click", fn);
+        el.addEventListener("touchend", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          fn();
+        });
+      }
+
+      // ══════════════════════════════════════════════
+      // マスター時間・HUD 更新
+      // ══════════════════════════════════════════════
+      function calcDur() {
+        let dur = Infinity;
+        for (const v of vs) {
+          if (v.loaded) {
+            const d = v.vid.duration - v.startTime;
+            if (d > 0 && d < dur) dur = d;
+          }
+        }
+        masterDur = isFinite(dur) ? dur : 0;
+        G("dur-time").textContent = fmtSec(masterDur);
+      }
+
+      function updateHUD() {
+        G("cur-time").textContent = fmtMs(masterTime);
+        if (masterDur > 0) {
+          G("master-sl").value = Math.round(Math.min(masterTime / masterDur, 1) * 10000);
+        }
+        for (const v of vs) {
+          if (v.loaded) {
+            v.timeEl.textContent = fmtMs(Math.max(0, v.vid.currentTime - v.startTime));
+          }
+        }
+      }
+
+      // ══════════════════════════════════════════════
+      // シーク
+      // ══════════════════════════════════════════════
+      function seekMaster(t) {
+        masterTime = Math.max(0, Math.min(masterDur || 0, t));
+        for (const v of vs) {
+          if (v.loaded) v.vid.currentTime = v.startTime + masterTime;
+        }
+        updateHUD();
+      }
+
+      // ══════════════════════════════════════════════
+      // 再生 / 停止 / 同期ループ
+      // ══════════════════════════════════════════════
+      function startPlay() {
+        const anyLoaded = vs.some((v) => v.loaded);
+        if (!anyLoaded) {
+          showToast("動画を選択してください");
+          return;
+        }
+
+        playing = true;
+        G("btn-play").textContent = "⏸";
+        G("btn-play").className = "btn-main danger";
+
+        for (const v of vs) {
+          if (v.loaded) {
+            v.vid.currentTime = v.startTime + masterTime;
+            v.vid.playbackRate = playbackRate;
+            v.vid.play().catch(() => {});
+          }
+        }
+        rafId = requestAnimationFrame(syncLoop);
+      }
+
+      function stopPlay() {
+        playing = false;
+        cancelAnimationFrame(rafId);
+        G("btn-play").textContent = "▶";
+        G("btn-play").className = "btn-main accent";
+        for (const v of vs) {
+          if (v.loaded) v.vid.pause();
+        }
+        // マスター時間を実際の映像位置に合わせる
+        for (const v of vs) {
+          if (v.loaded) {
+            masterTime = Math.max(0, v.vid.currentTime - v.startTime);
+            break;
+          }
+        }
+        updateHUD();
+      }
+
+      function togglePlay() {
+        playing ? stopPlay() : startPlay();
+      }
+
+      function syncLoop() {
+        if (!playing) return;
+
+        // マスタービデオを決定（最初に読み込まれた方）
+        let master = null;
+        for (const v of vs) {
+          if (v.loaded) {
+            master = v;
+            break;
+          }
+        }
+        if (!master) {
+          stopPlay();
+          return;
+        }
+
+        masterTime = Math.max(0, master.vid.currentTime - master.startTime);
+
+        // もう一方のビデオを同期（0.08秒以上のズレを修正）
+        for (const v of vs) {
+          if (v === master || !v.loaded) continue;
+          const expected = v.startTime + masterTime;
+          const diff = Math.abs(v.vid.currentTime - expected);
+          if (diff > 0.08) {
+            v.vid.currentTime = expected;
+            showSyncWarn();
+          }
+        }
+
+        updateHUD();
+
+        // 終端チェック
+        if (masterDur > 0 && masterTime >= masterDur - 0.04) {
+          stopPlay();
+          seekMaster(0); // 先頭に戻す
+          showToast("再生終了 → 先頭に戻しました");
+          return;
+        }
+        rafId = requestAnimationFrame(syncLoop);
+      }
+
+      // 同期ズレ警告（一時表示）
+      function showSyncWarn() {
+        const w = G("sync-warn");
+        w.style.display = "block";
+        clearTimeout(warnTimer);
+        warnTimer = setTimeout(() => {
+          w.style.display = "none";
+        }, 1200);
+      }
+
+      // 手動同期リセット
+      function resync() {
+        for (const v of vs) {
+          if (v.loaded) v.vid.currentTime = v.startTime + masterTime;
+        }
+        if (playing) {
+          for (const v of vs) {
+            if (v.loaded) {
+              v.vid.play().catch(() => {});
+            }
+          }
+        }
+        showToast("同期しました");
+      }
+
+      // ══════════════════════════════════════════════
+      // フレーム送り
+      // ══════════════════════════════════════════════
+      function stepFrames(n) {
+        if (playing) stopPlay();
+        seekMaster(masterTime + n / fps);
+      }
+
+      // ══════════════════════════════════════════════
+      // 再生速度
+      // ══════════════════════════════════════════════
+      const SPEEDS = [0.25, 0.5, 1, 1.5, 2, 4];
+      let speedIdx = 2;
+      function nextSpeed() {
+        speedIdx = (speedIdx + 1) % SPEEDS.length;
+        playbackRate = SPEEDS[speedIdx];
+        G("btn-speed").textContent = playbackRate + "×";
+        for (const v of vs) {
+          if (v.loaded) v.vid.playbackRate = playbackRate;
+        }
+      }
+
+      // ══════════════════════════════════════════════
+      // 縦横レイアウト切替
+      // ══════════════════════════════════════════════
+      function toggleLayout() {
+        layout = layout === "row" ? "col" : "row";
+        G("videos").className = layout;
+        G("btn-layout").textContent = layout === "row" ? "⇅ 縦並び" : "⇄ 横並び";
+      }
+
+      // 画面向き変化で自動切替
+      function autoLayout() {
+        const isLandscape = window.innerWidth > window.innerHeight;
+        layout = isLandscape ? "row" : "col";
+        G("videos").className = layout;
+        G("btn-layout").textContent = layout === "row" ? "⇅ 縦並び" : "⇄ 横並び";
+      }
+      window.addEventListener("resize", () => {
+        autoLayout();
+        // ★ リサイズ時にキャンバスをリセットして再描画（描画内容を保持）
+        [0, 1].forEach(i => {
+          const cv = G("cv" + i);
+          cv.width  = cv.clientWidth  || cv.offsetWidth;
+          cv.height = cv.clientHeight || cv.offsetHeight;
+          drawLines(i);
+        });
+      });
+      autoLayout(); // 起動時
+
+      // ══════════════════════════════════════════════
+      // オフセット調整
+      // （両動画が読み込まれている場合に開始時刻を微調整）
+      // ══════════════════════════════════════════════
+      function adjustOffset() {
+        if (!vs[0].loaded || !vs[1].loaded) {
+          showToast("両方の動画を読み込んでください");
+          return;
+        }
+        const v = prompt("動画 B の開始位置を調整します。\n" + "現在の開始時刻: " + fmtMs(vs[1].startTime) + "\n\n" + "オフセット（秒）を入力してください。\n" + "例: +0.5 → B を 0.5秒 遅らせる\n" + "    -0.5 → B を 0.5秒 早める", "0");
+        if (v === null) return;
+        const offset = parseFloat(v);
+        if (isNaN(offset)) {
+          showToast("無効な値です");
+          return;
+        }
+        vs[1].startTime = Math.max(0, vs[1].startTime + offset);
+        calcDur();
+        if (!playing) seekMaster(masterTime);
+        showToast(`動画 B を ${offset >= 0 ? "+" : ""}${offset.toFixed(3)}秒 調整しました`);
+      }
+
+      // ══════════════════════════════════════════════
+      // 開始フレーム設定モーダル
+      // ══════════════════════════════════════════════
+      const sfVid = G("sf-vid");
+      let sfFile = null;
+
+      function openStartFrameModal(idx, file) {
+        sfPendingIdx = idx;
+        sfFile = file;
+
+        G("sf-title").textContent = `開始フレームを設定（${vs[idx].label}）`;
+        G("sf-sl").value = 0;
+        G("sf-time").textContent = "0:00.000";
+        G("sf-info").textContent = "フレーム 0";
+
+        // ★修正: ハンドラとsrcを必ず先にクリア
+        //        (前のsrc=''でMEDIA_ERR_ABORTEDが発火しないよう、
+        //         ハンドラを null にしてから src を変更する)
+        sfVid.onloadedmetadata = null;
+        sfVid.onerror = null;
+        if (sfVid._blobUrl) {
+          URL.revokeObjectURL(sfVid._blobUrl);
+          sfVid._blobUrl = null;
+        }
+        sfVid.src = ""; // 前の動画を安全にクリア（ハンドラ null なので誤発火しない）
+
+        const url = URL.createObjectURL(file);
+        sfVid._blobUrl = url;
+
+        // ★修正: プロパティ形式で登録（上書きによる重複を防ぐ）
+        sfVid.onloadedmetadata = function () {
+          sfVid.onloadedmetadata = null;
+          sfVid.currentTime = 0;
+          G("sf-modal").classList.add("open");
+        };
+
+        sfVid.onerror = function () {
+          sfVid.onerror = null;
+          sfVid.onloadedmetadata = null;
+          const code = sfVid.error ? sfVid.error.code : 0;
+          // エラーコードに応じたメッセージ（H.264固定にしない）
+          const msgs = {
+            1: "読み込みを中断しました。再度お試しください。",
+            2: "ネットワークエラーが発生しました。",
+            3: "デコードエラー: このコーデックはお使いのブラウザで未対応の可能性があります。\n" + "（iPhone: H.265 → 設定でH.264に変更 / Android: H.265非対応のことがあります）",
+            4: "この動画形式はお使いのブラウザで対応していません。\nMP4（H.264）形式をお試しください。",
+          };
+          alert(msgs[code] || "動画を読み込めませんでした。別のファイルをお試しください。");
+          if (sfVid._blobUrl) {
+            URL.revokeObjectURL(sfVid._blobUrl);
+            sfVid._blobUrl = null;
+          }
+        };
+
+        sfVid.src = url;
+        sfVid.load();
+      }
+
+      // スライダー操作でプレビューシーク
+      G("sf-sl").addEventListener("input", function () {
+        if (!sfVid.duration) return;
+        const t = (this.value / 10000) * sfVid.duration;
+        sfVid.currentTime = t;
+        G("sf-time").textContent = fmtMs(t);
+        G("sf-info").textContent = `フレーム ${Math.round(t * fps)}  (${fmtMs(t)})`;
+      });
+
+      // 時刻更新でラベルを更新
+      sfVid.addEventListener("timeupdate", function () {
+        const t = sfVid.currentTime;
+        G("sf-time").textContent = fmtMs(t);
+        G("sf-info").textContent = `フレーム ${Math.round(t * fps)}  (${fmtMs(t)})`;
+      });
+
+      // 確定ボタン
+      G("sf-ok").addEventListener("click", confirmStartFrame);
+      G("sf-ok").addEventListener("touchend", (e) => {
+        e.preventDefault();
+        confirmStartFrame();
+      });
+
+      function confirmStartFrame() {
+        if (sfPendingIdx < 0 || !sfFile) return;
+        const idx = sfPendingIdx;
+        const startTime = sfVid.currentTime;
+        const url = sfVid._blobUrl;
+        sfVid._blobUrl = null; // 所有権を移譲
+
+        loadVideoIntoSlot(idx, sfFile, url, startTime);
+        closeStartFrameModal();
+      }
+
+      // キャンセルボタン
+      G("sf-cancel").addEventListener("click", closeStartFrameModal);
+      G("sf-cancel").addEventListener("touchend", (e) => {
+        e.preventDefault();
+        closeStartFrameModal();
+      });
+
+      function closeStartFrameModal() {
+        // ★修正: ハンドラを先に null にしてから src をクリア
+        //        (src='' で MEDIA_ERR_ABORTED が発火しても誤発火しない)
+        sfVid.onloadedmetadata = null;
+        sfVid.onerror = null;
+        G("sf-ok").onclick = null; // openStartFrameFromBlob で上書きされた場合も解除
+        G("sf-modal").classList.remove("open");
+        if (sfVid._blobUrl) {
+          URL.revokeObjectURL(sfVid._blobUrl);
+          sfVid._blobUrl = null;
+        }
+        sfVid.src = ""; // ← ここで ABORTED が発火してもハンドラが null なので安全
+        sfFile = null;
+        sfPendingIdx = -1;
+      }
+
+      // ══════════════════════════════════════════════
+      // 動画をスロットに読み込む
+      // ══════════════════════════════════════════════
+      function loadVideoIntoSlot(idx, file, url, startTime) {
+        const v = vs[idx];
+        const vid = v.vid;
+
+        // 前の URL を解放
+        if (v.blobUrl && v.blobUrl !== url) URL.revokeObjectURL(v.blobUrl);
+        v.blobUrl = url;
+        v.startTime = startTime;
+        v.loaded = false;
+        v.name = file && file.name ? file.name.replace(/\.[^.]+$/, "") : v.name;
+
+        // ★修正: ハンドラを先にクリアしてからsrcを変更
+        vid.onloadedmetadata = null;
+        vid.onerror = null;
+
+        // ★修正: プロパティ形式で登録（複数回呼ばれても蓄積しない）
+        vid.onloadedmetadata = function () {
+          vid.onloadedmetadata = null;
+          v.loaded = true;
+          v.nameEl.textContent = shortenName(v.name);
+          v.ov.style.display = "none";
+          v.tap.style.display = "block";
+          v.chgBtn.style.display = "inline-block";
+          calcDur();
+          if (!playing) vid.currentTime = v.startTime;
+          updateHUD();
+          showToast(`${v.label} を読み込みました（開始: ${fmtMs(startTime)}）`);
+        };
+
+        vid.onerror = function () {
+          vid.onerror = null;
+          vid.onloadedmetadata = null;
+          const code = vid.error ? vid.error.code : 0;
+          const hint = code === 3 ? "デコードエラー（コーデック非対応の可能性）" : code === 4 ? "この動画形式は未対応です" : "読み込みエラー";
+          v.ov.innerHTML = `<div class="icon">⚠️</div>` + `<div class="label">${hint}</div>` + `<div class="badge">タップして再選択</div>`;
+          v.ov.style.display = "flex";
+          showToast(`読み込みエラー (code=${code})`);
+        };
+
+        vid.src = url;
+        vid.load();
+      }
+
+      // ══════════════════════════════════════════════
+      // ファイル選択
+      // ══════════════════════════════════════════════
+      G("fi0").addEventListener("change", (e) => {
+        handleFileSelect(0, e.target.files[0]);
+        e.target.value = "";
+      });
+      G("fi1").addEventListener("change", (e) => {
+        handleFileSelect(1, e.target.files[0]);
+        e.target.value = "";
+      });
+
+      function handleFileSelect(idx, file) {
+        if (!file) return;
+        openStartFrameModal(idx, file);
+      }
+
+      // ── オーバーレイ（未読込み状態）タップ → ファイル選択 ──
+      G("ov0").addEventListener("click", () => G("fi0").click());
+      G("ov1").addEventListener("click", () => G("fi1").click());
+
+      // ── 動画タップ（読み込み済み状態）→ 再選択メニュー ──
+      G("tap0").addEventListener("click", () => openVMenu(0));
+      G("tap1").addEventListener("click", () => openVMenu(1));
+      G("tap0").addEventListener("touchend", (e) => {
+        e.preventDefault();
+        openVMenu(0);
+      });
+      G("tap1").addEventListener("touchend", (e) => {
+        e.preventDefault();
+        openVMenu(1);
+      });
+
+      // ── 変更ボタン ──
+      G("chg0").addEventListener("click", (e) => {
+        e.stopPropagation();
+        openVMenu(0);
+      });
+      G("chg1").addEventListener("click", (e) => {
+        e.stopPropagation();
+        openVMenu(1);
+      });
+
+      // ══════════════════════════════════════════════
+      // 再選択メニュー
+      // ══════════════════════════════════════════════
+      function openVMenu(idx) {
+        if (playing) stopPlay();
+        vmenuIdx = idx;
+        G("vmenu-title").textContent = vs[idx].label + " のメニュー";
+        G("vmenu").classList.add("open");
+      }
+      function closeVMenu() {
+        G("vmenu").classList.remove("open");
+        vmenuIdx = -1;
+      }
+
+      G("vmenu-reselect").addEventListener("click", () => {
+        // ★修正1: closeVMenu() の前にインデックスを保存する
+        //          (closeVMenu は vmenuIdx を -1 にリセットするため)
+        const i = vmenuIdx;
+        closeVMenu();
+        if (i >= 0) {
+          // ★修正2: touchend+setTimeout を廃止し click のみで対応
+          //          file input の .click() はユーザージェスチャー直接の文脈で
+          //          同期的に呼ぶ必要があり、setTimeout 内では動作しない
+          G("fi" + i).click();
+        }
+      });
+      // touchend+setTimeout は削除（ブラウザにブロックされるため）
+
+      G("vmenu-startframe").addEventListener("click", () => {
+        const i = vmenuIdx;
+        closeVMenu();
+        if (i >= 0 && vs[i].loaded) openStartFrameFromBlob(i);
+      });
+      G("vmenu-startframe").addEventListener("touchend", (e) => {
+        e.preventDefault();
+        const i = vmenuIdx;
+        closeVMenu();
+        // openStartFrameFromBlob はファイル入力を使わないので touchend 内で直接呼べる
+        if (i >= 0 && vs[i].loaded) openStartFrameFromBlob(i);
+      });
+
+      G("vmenu-close").addEventListener("click", closeVMenu);
+      G("vmenu-close").addEventListener("touchend", (e) => {
+        e.preventDefault();
+        closeVMenu();
+      });
+      G("vmenu").addEventListener("click", (e) => {
+        if (e.target === G("vmenu")) closeVMenu();
+      });
+
+      // 同じ Blob URL で開始フレームだけ再設定
+      function openStartFrameFromBlob(idx) {
+        const v = vs[idx];
+        if (!v.blobUrl) return;
+        sfPendingIdx = idx;
+        sfFile = { name: v.name };
+
+        G("sf-title").textContent = `開始フレームを再設定（${v.label}）`;
+        G("sf-sl").value = 0;
+        G("sf-time").textContent = "0:00.000";
+        G("sf-info").textContent = "フレーム 0";
+
+        // ★修正: ハンドラを先にクリア（closeStartFrameModal が呼ばれた後でも安全）
+        sfVid.onloadedmetadata = null;
+        sfVid.onerror = null;
+        if (sfVid._blobUrl) {
+          URL.revokeObjectURL(sfVid._blobUrl);
+          sfVid._blobUrl = null;
+        }
+        sfVid.src = ""; // 先にクリア（ハンドラ null なので誤発火しない）
+
+        // ★修正: プロパティ形式で登録
+        sfVid.onloadedmetadata = function () {
+          sfVid.onloadedmetadata = null;
+          sfVid.currentTime = v.startTime;
+          if (v.startTime > 0 && sfVid.duration > 0) {
+            G("sf-sl").value = Math.round((v.startTime / sfVid.duration) * 10000);
+          }
+          G("sf-modal").classList.add("open");
+        };
+
+        sfVid.onerror = function () {
+          sfVid.onerror = null;
+          sfVid.onloadedmetadata = null;
+          alert("動画の再読み込みに失敗しました。");
+        };
+
+        // 既存の Blob URL を sfVid に設定（新しい createObjectURL は不要）
+        sfVid.src = v.blobUrl;
+        sfVid.load();
+
+        // 確定時: startTime だけ更新（src は変えない）
+        G("sf-ok").onclick = () => {
+          const newStart = sfVid.currentTime;
+          vs[idx].startTime = newStart;
+          calcDur();
+          if (!playing) vs[idx].vid.currentTime = newStart;
+          updateHUD();
+          // closeStartFrameModal はハンドラを null にしてから src='' するので安全
+          closeStartFrameModal();
+          showToast(`開始フレームを ${fmtMs(newStart)} に変更しました`);
+        };
+      }
+
+      // ══════════════════════════════════════════════
+      // マスタースライダー
+      // ══════════════════════════════════════════════
+      G("master-sl").addEventListener("input", function () {
+        if (playing) stopPlay();
+        seekMaster((this.value / 10000) * (masterDur || 0));
+      });
+      G("master-sl").addEventListener(
+        "touchstart",
+        (e) => {
+          if (playing) stopPlay();
+        },
+        { passive: true },
+      );
+
+      // ══════════════════════════════════════════════
+      // FPS 設定
+      // ══════════════════════════════════════════════
+      G("btn-fps").addEventListener("click", () => {
+        const v = prompt("フレームレートを入力してください\n（フレーム送り・フレーム番号表示に使用）", fps);
+        if (v && parseFloat(v) > 0) {
+          fps = parseFloat(v);
+          G("btn-fps").textContent = fps + "fps";
+          showToast("FPS を " + fps + " に設定しました");
+        }
+      });
+
+      // ══════════════════════════════════════════════
+      // ボタン・コントロール バインディング
+      // ══════════════════════════════════════════════
+      btn("btn-play", togglePlay);
+      btn("btn-p1", () => stepFrames(-1));
+      btn("btn-n1", () => stepFrames(1));
+      btn("btn-p10", () => stepFrames(-10));
+      btn("btn-n10", () => stepFrames(10));
+      btn("btn-resync", resync);
+      btn("btn-speed", nextSpeed);
+      btn("btn-layout", toggleLayout);
+      btn("btn-offset", adjustOffset);
+      // ── 全パネルのキャンバス・タップレイヤーを mode に合わせて更新 ──
+      // btn() は touchend で preventDefault → 合成 click を抑制するため
+      // setupDraw 内の click リスナーではなくここで直接呼ぶ
+      function updateAllDrawLayers() {
+        [0, 1].forEach(i => {
+          const cv       = G("cv" + i);
+          const wrap     = G("vwrap" + i);
+          const tapLayer = G("tap" + i);
+
+          // ★ 描画モードに入る前にキャンバスの内部解像度を表示サイズに合わせる
+          //    初期値 300×150px のまま描くと座標系がズレてクリック位置に描けない
+          const w = wrap.offsetWidth  || wrap.clientWidth;
+          const h = wrap.offsetHeight || wrap.clientHeight;
+          if (w > 0 && h > 0) {
+            if (cv.width  !== w) cv.width  = w;
+            if (cv.height !== h) cv.height = h;
+          }
+
+          if (mode !== "none") {
+            cv.style.pointerEvents       = "auto";
+            cv.style.cursor              = "crosshair";
+            tapLayer.style.pointerEvents = "none";
+          } else {
+            cv.style.pointerEvents       = "none";
+            cv.style.cursor              = "default";
+            tapLayer.style.pointerEvents = vs[i].loaded ? "auto" : "none";
+          }
+        });
+      }
+
+      btn("btn-line", () => {
+        mode = "line";
+        updateAllDrawLayers();
+        showToast("線モード: 始点 → 終点の順にクリック");
+      });
+
+      btn("btn-angle", () => {
+        mode = "angle";
+        updateAllDrawLayers();
+        showToast("角度モード: 第1点 → 頂点 → 第3点の順にクリック");
+      });
+
+      btn("btn-clear", () => {
+        drawings[0] = []; drawings[1] = [];
+        measureStep[0] = 0; measureStep[1] = 0;
+        tempPoints[0]  = []; tempPoints[1]  = [];
+        drawLines(0); drawLines(1);
+        mode = "none";
+        updateAllDrawLayers();
+        showToast("クリアしました");
+      });
+
+      // ═════════════════════════════════════
+      // キーボードショートカット
+      // ═════════════════════════════════════
+      document.addEventListener("keydown", (e) => {
+        // 入力欄フォーカス中は無効（重要：誤動作防止）
+        const tag = document.activeElement.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+        switch (e.code) {
+          // ▶ 再生・停止（スペースキー）
+          case "Space":
+            e.preventDefault(); // ページスクロール防止
+            togglePlay();
+            break;
+
+          // ◀ 1フレーム戻る
+          case "ArrowLeft":
+            e.preventDefault();
+            stepFrames(-1);
+            break;
+
+          // ▶ 1フレーム進む
+          case "ArrowRight":
+            e.preventDefault();
+            stepFrames(1);
+            break;
+
+          // ◀ 10フレーム戻る（↑）
+          case "ArrowUp":
+            e.preventDefault();
+            stepFrames(-10);
+            break;
+
+          // ▶ 10フレーム進む（↓）
+          case "ArrowDown":
+            e.preventDefault();
+            stepFrames(10);
+            break;
+        }
+      });
+
+      // ═════════════════════════════════════
+      // ドラッグ＆ドロップ対応
+      // ═════════════════════════════════════
+      function setupDragDrop(idx) {
+        const wrap = G("vwrap" + idx);
+
+        wrap.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          wrap.style.outline = "2px dashed #4a9eff";
+        });
+
+        wrap.addEventListener("dragleave", () => {
+          wrap.style.outline = "none";
+        });
+
+        wrap.addEventListener("drop", (e) => {
+          e.preventDefault();
+          wrap.style.outline = "none";
+
+          const file = e.dataTransfer.files[0];
+          if (!file || !file.type.startsWith("video/")) {
+            showToast("動画ファイルをドロップしてください");
+            return;
+          }
+
+          handleFileSelect(idx, file);
+        });
+      }
+
+      function setTapEnabled(on) {
+        G("tap0").style.pointerEvents = on ? "auto" : "none";
+        G("tap1").style.pointerEvents = on ? "auto" : "none";
+      }
+
+      // 初期化
+      setupDragDrop(0);
+      setupDragDrop(1);
+
+      // ═════════════════════════════════════
+      // ズーム機能
+      // ═════════════════════════════════════
+      function setupZoom(idx) {
+        const v = vs[idx];
+        let scale = 1;
+        let posX = 0;
+        let posY = 0;
+        let dragging = false;
+        let startX, startY;
+
+        // ★修正: video要素ではなくvwrapコンテナでイベントを捕捉
+        //        （.vtap/.vovオーバーレイがvideoの上に重なるため、
+        //          videoへのイベントが届かずブラウザ全体がズームされていた）
+        const wrap = G("vwrap" + idx);
+        const el = v.vid; // transformはvideo要素に適用
+
+        function updateTransform() {
+          el.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+        }
+
+        // ── ホイールズーム（Ctrl+スクロール）──
+        wrap.addEventListener(
+          "wheel",
+          (e) => {
+            if (!e.ctrlKey) return;
+            e.preventDefault(); // ブラウザズーム防止
+            const delta = -e.deltaY * 0.001;
+            scale = Math.min(Math.max(1, scale + delta), 5);
+            updateTransform();
+          },
+          { passive: false },
+        );
+
+        // ── ピンチズーム（タッチ）──
+        let lastPinchDist = null;
+        let pinchStartScale = 1;
+
+        wrap.addEventListener(
+          "touchstart",
+          (e) => {
+            if (e.touches.length === 2) {
+              // ピンチ開始
+              lastPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+              pinchStartScale = scale;
+              dragging = false;
+            } else if (e.touches.length === 1 && scale > 1) {
+              // ズーム中の1本指ドラッグ
+              dragging = true;
+              startX = e.touches[0].clientX - posX;
+              startY = e.touches[0].clientY - posY;
+            }
+          },
+          { passive: true },
+        );
+
+        wrap.addEventListener(
+          "touchmove",
+          (e) => {
+            if (e.touches.length === 2 && lastPinchDist !== null) {
+              e.preventDefault(); // ページスクロール・ブラウザズーム防止
+              const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+              scale = Math.min(Math.max(1, pinchStartScale * (dist / lastPinchDist)), 5);
+              updateTransform();
+            } else if (e.touches.length === 1 && dragging) {
+              e.preventDefault();
+              posX = e.touches[0].clientX - startX;
+              posY = e.touches[0].clientY - startY;
+              updateTransform();
+            }
+          },
+          { passive: false },
+        );
+
+        wrap.addEventListener("touchend", (e) => {
+          if (e.touches.length < 2) lastPinchDist = null;
+          if (e.touches.length === 0) dragging = false;
+        });
+
+        // ── マウスドラッグ（ズーム中のみ）──
+        wrap.addEventListener("mousedown", (e) => {
+          if (scale <= 1) return;
+          dragging = true;
+          startX = e.clientX - posX;
+          startY = e.clientY - posY;
+        });
+
+        window.addEventListener("mousemove", (e) => {
+          if (!dragging) return;
+          posX = e.clientX - startX;
+          posY = e.clientY - startY;
+          updateTransform();
+        });
+
+        window.addEventListener("mouseup", () => {
+          dragging = false;
+        });
+
+        // ── ダブルクリック／タップでリセット ──
+        wrap.addEventListener("dblclick", () => {
+          scale = 1;
+          posX = 0;
+          posY = 0;
+          updateTransform();
+        });
+      }
+
+      function getPos(e, wrap) {
+        const r = wrap.getBoundingClientRect();
+        return {
+          x: e.clientX - r.left,
+          y: e.clientY - r.top,
+        };
+      }
+
+      // ──────────────────────────────────────────
+      // ヘルパー: ●マーカーを描画
+      // ──────────────────────────────────────────
+      function drawDot(ctx, x, y, color) {
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle   = color;
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth   = 1.5;
+        ctx.stroke();
+      }
+
+      // ヘルパー: 角度ラベルを描画
+      function drawLabel(ctx, text, x, y) {
+        ctx.font = "bold 13px monospace";
+        const tw  = ctx.measureText(text).width;
+        const pad = 5;
+        ctx.fillStyle = "rgba(0,0,0,0.82)";
+        ctx.fillRect(x - pad, y - 17, tw + pad * 2, 19);
+        ctx.fillStyle    = "#fff";
+        ctx.textBaseline = "top";
+        ctx.fillText(text, x, y - 16);
+      }
+
+      // ──────────────────────────────────────────
+      // drawLines: 線・角度・途中点をすべて描画
+      // ──────────────────────────────────────────
+      function drawLines(idx) {
+        const cv   = G("cv" + idx);
+        const wrap = G("vwrap" + idx);
+        const ctx  = cv.getContext("2d");
+
+        const w = wrap.offsetWidth  || wrap.clientWidth;
+        const h = wrap.offsetHeight || wrap.clientHeight;
+        if (w === 0 || h === 0) return;
+        if (cv.width  !== w) cv.width  = w;
+        if (cv.height !== h) cv.height = h;
+
+        ctx.clearRect(0, 0, cv.width, cv.height);
+
+        const color = idx === 0 ? "#ff453a" : "#4a9eff";
+
+        for (const ln of drawings[idx]) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth   = 2;
+
+          if (ln.x3 !== undefined) {
+            // ── 3点角度オブジェクト ──────────────────
+            // P1→P2, P2→P3 の2辺を描画
+            ctx.beginPath();
+            ctx.moveTo(ln.x1, ln.y1);
+            ctx.lineTo(ln.x2, ln.y2);
+            ctx.lineTo(ln.x3, ln.y3);
+            ctx.stroke();
+
+            // 頂点(P2)に角度弧を描画
+            const a1   = Math.atan2(ln.y1 - ln.y2, ln.x1 - ln.x2);
+            const a2   = Math.atan2(ln.y3 - ln.y2, ln.x3 - ln.x2);
+            let diff   = a2 - a1;
+            while (diff < -Math.PI) diff += 2 * Math.PI;
+            while (diff >  Math.PI) diff -= 2 * Math.PI;
+            ctx.beginPath();
+            ctx.arc(ln.x2, ln.y2, 22, a1, a2, diff < 0);
+            ctx.stroke();
+
+            // 3点すべてに●マーカー
+            drawDot(ctx, ln.x1, ln.y1, color);
+            drawDot(ctx, ln.x2, ln.y2, color); // 頂点
+            drawDot(ctx, ln.x3, ln.y3, color);
+
+            // 角度ラベルを頂点近くに表示
+            const lx = ln.x2 + (Math.cos((a1 + a2) / 2)) * 40;
+            const ly = ln.y2 + (Math.sin((a1 + a2) / 2)) * 40;
+            drawLabel(ctx, ln.angle + "°", lx, ly);
+
+          } else {
+            // ── 2点線オブジェクト ──────────────────
+            ctx.beginPath();
+            ctx.moveTo(ln.x1, ln.y1);
+            ctx.lineTo(ln.x2, ln.y2);
+            ctx.stroke();
+
+            drawDot(ctx, ln.x1, ln.y1, color);
+            drawDot(ctx, ln.x2, ln.y2, color);
+          }
+        }
+
+        // ── 選択途中の点をプレビュー表示（●のみ）──
+        for (const pt of tempPoints[idx]) {
+          drawDot(ctx, pt.x, pt.y, color);
+        }
+      }
+
+      // ── setupDraw: canvas を直接クリックターゲットにする方式 ──
+      function setupDraw(idx) {
+        const cv       = G("cv" + idx);
+        const tapLayer = G("tap" + idx);
+
+        // モード切替時の pointer-events 制御
+        function updateLayer() {
+          if (mode !== "none") {
+            // 描画モード: canvas をクリック可能（z-index:5 で最前面）
+            // カーソルを十字に変えて描画中であることを視覚表示
+            cv.style.pointerEvents       = "auto";
+            cv.style.cursor              = "crosshair";
+            tapLayer.style.pointerEvents = "none";   // メニューは無効化
+          } else {
+            // 通常モード: canvas を透過して tapLayer/video を有効に
+            cv.style.pointerEvents       = "none";
+            cv.style.cursor              = "default";
+            tapLayer.style.pointerEvents = vs[idx].loaded ? "auto" : "none";
+          }
+        }
+
+        // キャンバスへの直接クリック（線: 2点, 角度: 3点）
+        cv.addEventListener("click", (e) => {
+          if (mode === "none") return;
+
+          const r   = cv.getBoundingClientRect();
+          const pos = { x: e.clientX - r.left, y: e.clientY - r.top };
+
+          if (mode === "line") {
+            // ── 線モード（2点）──────────────────────
+            if (measureStep[idx] === 0) {
+              tempPoints[idx]  = [pos];
+              measureStep[idx] = 1;
+              drawLines(idx);   // 始点●を表示
+              showToast("始点を指定・次に終点をクリック");
+            } else {
+              const p1 = tempPoints[idx][0];
+              drawings[idx].push({ x1: p1.x, y1: p1.y, x2: pos.x, y2: pos.y });
+              tempPoints[idx]  = [];
+              measureStep[idx] = 0;
+              drawLines(idx);
+              showToast("線を描画しました");
+            }
+
+          } else if (mode === "angle") {
+            // ── 角度モード（3点）────────────────────
+            //   第1点 → 第2点（頂点）→ 第3点 で角度を算出
+            if (measureStep[idx] === 0) {
+              tempPoints[idx]  = [pos];
+              measureStep[idx] = 1;
+              drawLines(idx);
+              showToast("第1点を指定・次に頂点をクリック");
+            } else if (measureStep[idx] === 1) {
+              tempPoints[idx].push(pos);
+              measureStep[idx] = 2;
+              drawLines(idx);
+              showToast("頂点を指定・次に第3点をクリック");
+            } else {
+              const [p1, p2] = tempPoints[idx];
+              const p3       = pos;
+              // ベクトル p2→p1, p2→p3 の内角を計算
+              const v1  = { x: p1.x - p2.x, y: p1.y - p2.y };
+              const v2  = { x: p3.x - p2.x, y: p3.y - p2.y };
+              const dot = v1.x * v2.x + v1.y * v2.y;
+              const mag = Math.hypot(v1.x, v1.y) * Math.hypot(v2.x, v2.y);
+              const deg = mag > 0
+                ? (Math.acos(Math.max(-1, Math.min(1, dot / mag))) * 180 / Math.PI).toFixed(1)
+                : "0.0";
+              drawings[idx].push({
+                x1: p1.x, y1: p1.y,
+                x2: p2.x, y2: p2.y,
+                x3: p3.x, y3: p3.y,
+                angle: deg
+              });
+              tempPoints[idx]  = [];
+              measureStep[idx] = 0;
+              drawLines(idx);
+              showToast(`角度: ${deg}°`);
+            }
+          }
+        });
+
+        // ★ モードボタンの pointer-events 切替は updateAllDrawLayers() に集約
+        //    (btn() が touchend で click を抑制するため click リスナーでは動作しない)
+      }
+
+
+      // 初期化
+      setupZoom(0);
+      setupZoom(1);
+      setupDraw(0);
+      setupDraw(1);
+
+      // ══════════════════════════════════════════════
+      // 各動画の ended イベント
+      // ══════════════════════════════════════════════
+      for (const v of vs) {
+        v.vid.addEventListener("ended", () => {
+          if (playing) {
+            stopPlay();
+            seekMaster(0);
+            showToast("再生終了 → 先頭に戻しました");
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
