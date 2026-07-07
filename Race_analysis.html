@@ -1190,10 +1190,55 @@
 
       // ── 競技距離別ラベル定義 ──
       const DIST_LABELS = {
-        50: ["15m", "ST1S", "ST1E", "25m", "ST2S", "ST2E", "35m", "ST3S", "ST3E", "45m"],
-        100: ["15m", "ST1S", "ST1E", "25m", "ST2S", "ST2E", "35m", "ST3S", "ST3E", "45m", "65m", "ST4S", "ST4E", "75m", "ST5S", "ST5E", "85m", "ST6S", "ST6E", "95m"],
-        200: ["15m", "ST1S", "ST1E", "25m", "ST2S", "ST2E", "45m", "65m", "ST3S", "ST3E", "75m", "ST4S", "ST4E", "95m", "115m", "ST5S", "ST5E", "125m", "ST6S", "ST6E", "145m", "165m", "ST7S", "ST7E", "175m", "ST8S", "ST8E", "195m"],
-        400: ["15m", "ST1S", "ST1E", "45m", "65m", "ST2S", "ST2E", "95m", "115m", "ST3S", "ST3E", "145m", "ST4S", "ST4E", "195m", "215m", "ST5S", "ST5E", "225m", "ST6S", "ST6E", "245m", "265m", "ST7S", "ST7E", "295m", "315m", "ST8S", "ST8E", "345m", "ST9S", "ST9E", "365m", "ST10S", "ST10E", "395m"],
+        50: ["15m", "ST1S", "ST1E", "25m", "ST2S", "ST2E", "35m", "ST3S", "ST3E", "45m", "50m"],
+        100: ["15m", "ST1S", "ST1E", "25m", "ST2S", "ST2E", "35m", "ST3S", "ST3E", "45m", , "50m", "65m", "ST4S", "ST4E", "75m", "ST5S", "ST5E", "85m", "ST6S", "ST6E", "95m", "100m"],
+        200: ["15m", "ST1S", "ST1E", "25m", "ST2S", "ST2E", "45m", , "50m", "65m", "ST3S", "ST3E", "75m", "ST4S", "ST4E", "95m", , "100m", "115m", "ST5S", "ST5E", "125m", "ST6S", "ST6E", "145m", "150m", "165m", "ST7S", "ST7E", "175m", "ST8S", "ST8E", "195m", "200m"],
+        400: [
+          "15m",
+          "ST1S",
+          "ST1E",
+          "45m",
+          "50m",
+          "65m",
+          "ST2S",
+          "ST2E",
+          "95m",
+          "100m",
+          "115m",
+          "ST3S",
+          "ST3E",
+          "145m",
+          "150m",
+          "ST4S",
+          "ST4E",
+          "195m",
+          "200m",
+          "215m",
+          "ST5S",
+          "ST5E",
+          "225m",
+          "ST6S",
+          "ST6E",
+          "245m",
+          "250m",
+          "265m",
+          "ST7S",
+          "ST7E",
+          "295m",
+          "300m",
+          "315m",
+          "ST8S",
+          "ST8E",
+          "345m",
+          "350m",
+          "ST9S",
+          "ST9E",
+          "365m",
+          "ST10S",
+          "ST10E",
+          "395m",
+          "400m",
+        ],
         800: [
           "15m",
           "ST1S",
@@ -1297,6 +1342,8 @@
         800: ["RT", "50m", "100m", "150m", "200m", "250m", "300m", "350m", "400m", "450m", "500m", "550m", "600m", "650m", "700m", "750m", "800m"],
         1500: ["RT", "50m", "100m", "150m", "200m", "250m", "300m", "350m", "400m", "450m", "500m", "550m", "600m", "650m", "700m", "750m", "800m", "850m", "900m", "950m", "1000m", "1050m", "1100m", "1150m", "1200m", "1250m", "1300m", "1350m", "1400m", "1450m", "1500m"],
       };
+
+      const OFFICIAL_SPLITS = ["50m", "100m", "150m", "200m", "250m", "300m", "350m", "400m", "450m", "500m", "550m", "600m", "650m", "700m", "750m", "800m", "850m", "900m", "950m", "1000m", "1050m", "1100m", "1150m", "1200m", "1250m", "1300m", "1350m", "1400m", "1450m", "1500m"];
 
       // タイム入力値をレーン別に保持 { '0': { 'RT':'0.142', '50m':'5.82' }, '1': {...} }
       let timeValues = {};
@@ -1644,10 +1691,16 @@
       };
 
       // 選択距離のラベル配列（なし or 未定義なら null）
+      // 公式記録で取得する地点(50m,100m,...)は公式タイム入力から得るため
+      // 動画からの記録対象外とし, ラベル列から除外する．
+      // これにより n番目の記録が自動的に「次の計測地点」に対応する
+      // （配列に混入していた空要素 undefined もあわせて除去）
       function getDistLabels() {
         if (!selectedDist) return null;
         const arr = DIST_LABELS[selectedDist];
-        return arr && arr.length ? arr : null;
+        if (!arr || !arr.length) return null;
+        const filtered = arr.filter((l) => l && !OFFICIAL_SPLITS.includes(l));
+        return filtered.length ? filtered : null;
       }
 
       // CSV ヘッダーの Frame列名を返す
@@ -2130,16 +2183,18 @@
             }
             markedFrames.sort((a, b) => a.frame - b.frame);
             refreshRecords();
+            scrollToRecord(lanes[0], currentFrame);
             showToast(`[スタート] ${getRecordMode() === "time" ? frameToSec(currentFrame) : "フレーム" + currentFrame} → 全${lanes.length}レーン`);
             return;
           }
 
           // ── 2回目以降: 選択中のレーン(currentLabel)のみ記録 ──
-          // 何番目の計測点かをラベル名で表示するために計算
+          // 公式記録地点は getDistLabels() で除外済みのため,
+          // 記録済み件数 nDone がそのまま次の計測地点ラベルの添字になる
           const allF = markedFrames.filter((e) => activeLanes.has(e.label)).map((e) => e.frame);
           const sf = allF.length ? Math.min(...allF) : null;
           const nDone = (byLabel[currentLabel] || []).filter((f) => f !== sf).length;
-          const dl = DIST_LABELS[selectedDist] || [];
+          const dl = getDistLabels() || [];
           const evtLabel = dl[nDone] || `計測${nDone + 1}`;
 
           const dup = markedFrames.some((x) => x.label === currentLabel && x.frame === currentFrame);
@@ -2147,7 +2202,12 @@
             markedFrames.push({ label: currentLabel, frame: currentFrame });
             markedFrames.sort((a, b) => a.frame - b.frame);
             refreshRecords();
-            showToast(`[${evtLabel}] ${getRecordMode() === "time" ? frameToSec(currentFrame) : "フレーム" + currentFrame} → L${currentLabel}`);
+            scrollToRecord(currentLabel, currentFrame);
+            const next = dl[nDone + 1] ? `／次: ${dl[nDone + 1]}` : "／全地点完了";
+            showToast(`[${evtLabel}] ${getRecordMode() === "time" ? frameToSec(currentFrame) : "フレーム" + currentFrame} → L${currentLabel} ${next}`);
+          } else {
+            // 修正: 従来は無音で無視され「記録できない」ように見えた
+            showToast(`⚠ フレーム${currentFrame}はL${currentLabel}に記録済みです．動画を進めてから記録してください`);
           }
           return;
         }
@@ -2158,6 +2218,7 @@
           markedFrames.push({ label: currentLabel, frame: currentFrame });
           markedFrames.sort((a, b) => a.frame - b.frame);
           refreshRecords();
+          scrollToRecord(currentLabel, currentFrame);
           showToast(`記録: ラベル${currentLabel}  ${getRecordMode() === "time" ? frameToSec(currentFrame) : "フレーム" + currentFrame}`);
         }
       }
@@ -2237,10 +2298,11 @@
               tmp.textContent = t;
               maxHdrW = Math.max(maxHdrW, tmp.offsetWidth + 16);
             }
-            // セル幅: L0テキスト幅ベース
-            tmp.style.fontSize = ".62rem";
-            tmp.textContent = "L0";
-            const tw = Math.max(tmp.offsetWidth + 14, 30);
+            // セル幅: 実際に表示される最大値の幅ベース（全桁表示に対応）
+            tmp.style.fontSize = ".7rem";
+            const maxFrame = markedFrames.length ? Math.max(...markedFrames.map((e) => e.frame)) : 8888;
+            tmp.textContent = getRecordMode() === "time" ? "888.88" : String(maxFrame);
+            const tw = Math.max(tmp.offsetWidth + 18, 34);
             document.body.removeChild(tmp);
             grid.style.setProperty("--cell-w", tw + "px");
             grid.style.setProperty("--hdr-w", maxHdrW + "px");
@@ -2331,6 +2393,33 @@
             row.appendChild(cells);
             grid.appendChild(row);
           }
+
+          // 修正: ラベル数を超過した記録も行として表示（従来は消えて見えなくなり,
+          // 誤記録が1つ混入すると以降がずれて最後の地点が入力不能に見えた）
+          const maxRest = Math.max(0, ...lanes.map((ln) => byLabelRest[ln].length));
+          for (let ri = dl.length; ri < maxRest; ri++) {
+            const row = document.createElement("div");
+            row.className = "dist-row";
+            const hdr = document.createElement("div");
+            hdr.className = "dist-row-hdr";
+            hdr.textContent = `超過${ri - dl.length + 1}`;
+            hdr.style.color = "var(--rd, #f04a4a)";
+            row.appendChild(hdr);
+            const cells = document.createElement("div");
+            cells.className = "dist-row-cells";
+            for (const ln of lanes) {
+              const f = byLabelRest[ln][ri];
+              if (f === undefined) {
+                const empty = document.createElement("div");
+                empty.style.cssText = "width:var(--cell-w,30px);height:26px;flex-shrink:0;";
+                cells.appendChild(empty);
+                continue;
+              }
+              cells.appendChild(makeDistRI(f, ln, ri));
+            }
+            row.appendChild(cells);
+            grid.appendChild(row);
+          }
         } else {
           // ── レーンモード：横グリッド（従来）、アクティブレーンのみ表示 ──
           grid.className = "mode-lane";
@@ -2367,6 +2456,8 @@
       function makeRI(frame, label, isStart) {
         const el = document.createElement("div");
         el.className = "ri" + (isStart ? " sf" : "");
+        el.dataset.lane = label;
+        el.dataset.frame = frame;
         el.textContent = displayVal(frame);
         el.onclick = () => {
           if (vW) seekToFrame(frame);
@@ -2391,9 +2482,26 @@
         return el;
       }
 
+      // 記録直後に該当セルへ自動スクロールし, 一時ハイライトする
+      function scrollToRecord(lane, frame) {
+        requestAnimationFrame(() => {
+          const cell = G("rec-grid").querySelector(`[data-lane="${lane}"][data-frame="${frame}"]`);
+          if (!cell) return;
+          cell.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          cell.style.outline = "2px solid var(--ac, #4af0a0)";
+          cell.style.outlineOffset = "-1px";
+          setTimeout(() => {
+            cell.style.outline = "";
+            cell.style.outlineOffset = "";
+          }, 1200);
+        });
+      }
+
       function makeDistRI(frame, lane, rowIdx) {
         const el = document.createElement("div");
         el.className = "dist-ri";
+        el.dataset.lane = lane;
+        el.dataset.frame = frame;
         // 数字のみ・レーンカラーで表示
         const numEl = document.createElement("span");
         numEl.style.fontSize = ".7rem";
@@ -2401,12 +2509,12 @@
         numEl.style.color = LANE_COLORS[parseInt(lane) % 10];
         numEl.style.pointerEvents = "none";
         // フレーム番号 or 時間で表示
+        // 修正: 4桁以上を「233.」のように切り詰めると誤解を招くため全桁表示に変更
+        // （時間表示もツールチップと同じスタート基準に統一）
         if (getRecordMode() === "time") {
-          const t = (frame / getFPS()).toFixed(2);
-          numEl.textContent = t.length > 5 ? t.slice(0, 5) : t;
+          numEl.textContent = displayVal(frame);
         } else {
-          const s = String(frame);
-          numEl.textContent = s.length > 3 ? s.slice(0, 3) + "." : s;
+          numEl.textContent = String(frame);
         }
         el.appendChild(numEl);
         // 全フレーム番号（hover時tooltip）
@@ -2576,6 +2684,16 @@
       };
 
       // ── Keyboard ──
+      // 入力欄(input/select/textarea)以外をクリックしたら常にフォーカスを本体へ戻す．
+      // 動画ウィンドウやボタンをクリックした直後でもキー操作が即座に効き,
+      // ボタンにフォーカスが残ってSpaceキーが誤動作する問題も防ぐ
+      document.addEventListener("click", (e) => {
+        if (e.target.closest && e.target.closest("input,select,textarea")) return;
+        const ae = document.activeElement;
+        if (ae && ae !== document.body && ae.blur) ae.blur();
+        document.body.focus();
+      });
+
       document.addEventListener("keydown", (e) => {
         if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
         switch (e.key) {
