@@ -589,7 +589,8 @@
       let mode = "none"; // "line" or "angle"
       const measureStep = [0, 0];
       const tempStart  = [null, null];   // 後方互換のため残す
-      const tempPoints = [[], []];       // 各パネルの途中クリック点
+      const tempPoints  = [[], []];       // 各パネルの途中クリック点
+      const previewPos  = [null, null];   // プレビュー線のカーソル位置
 
       // ══════════════════════════════════════════════
       // ユーティリティ
@@ -1239,6 +1240,7 @@
         drawings[0] = []; drawings[1] = [];
         measureStep[0] = 0; measureStep[1] = 0;
         tempPoints[0]  = []; tempPoints[1]  = [];
+        previewPos[0]  = null; previewPos[1] = null;
         drawLines(0); drawLines(1);
         mode = "none";
         updateAllDrawLayers();
@@ -1527,9 +1529,27 @@
           }
         }
 
-        // ── 選択途中の点をプレビュー表示（●のみ）──
+        // ── 選択途中の点を●で表示 ──
         for (const pt of tempPoints[idx]) {
           drawDot(ctx, pt.x, pt.y, color);
+        }
+
+        // ── プレビュー線（最後に登録した点 → カーソル位置） ──
+        //    線モード  : 始点→カーソル
+        //    角度モード: 第1点→カーソル（step1）、頂点→カーソル（step2）
+        const prev = previewPos[idx];
+        if (prev && tempPoints[idx].length > 0) {
+          const last = tempPoints[idx][tempPoints[idx].length - 1];
+          ctx.save();
+          ctx.strokeStyle  = color;
+          ctx.lineWidth    = 1.5;
+          ctx.globalAlpha  = 0.55;
+          ctx.setLineDash([7, 5]);          // 破線でプレビューとわかる
+          ctx.beginPath();
+          ctx.moveTo(last.x, last.y);
+          ctx.lineTo(prev.x, prev.y);
+          ctx.stroke();
+          ctx.restore();                    // setLineDash・globalAlpha を元に戻す
         }
       }
 
@@ -1612,6 +1632,29 @@
               drawLines(idx);
               showToast(`角度: ${deg}°`);
             }
+          }
+        });
+
+        // ── カーソル追従プレビュー（pointermove） ──
+        cv.addEventListener("pointermove", (e) => {
+          if (mode === "none" || measureStep[idx] === 0) {
+            // 描画待機中でなければプレビュー不要
+            if (previewPos[idx] !== null) {
+              previewPos[idx] = null;
+              drawLines(idx);
+            }
+            return;
+          }
+          const r = cv.getBoundingClientRect();
+          previewPos[idx] = { x: e.clientX - r.left, y: e.clientY - r.top };
+          drawLines(idx);  // 毎フレーム再描画でプレビュー更新
+        });
+
+        // キャンバス外に出たらプレビューを消す
+        cv.addEventListener("pointerleave", () => {
+          if (previewPos[idx] !== null) {
+            previewPos[idx] = null;
+            drawLines(idx);
           }
         });
 
