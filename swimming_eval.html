@@ -1054,8 +1054,8 @@ function drawPhaseChart(phases, times, svActual, svTarget){
     +'<text x="'+(lx+10)+'" y="'+(ly+4)+'" font-size="9" fill="#333">実測</text>';
   s+='<line x1="'+lx+'" y1="'+(ly+16)+'" x2="'+(lx+8)+'" y2="'+(ly+16)+'" stroke="#bbb" stroke-width="1.5" stroke-dasharray="4,2"/>'
     +'<text x="'+(lx+10)+'" y="'+(ly+20)+'" font-size="9" fill="#333">目標標準</text>';
-  s+='<text x="'+lx+'" y="'+(ly+36)+'" font-size="8" fill="#C03030">+Xs 速い</text>';
-  s+='<text x="'+lx+'" y="'+(ly+48)+'" font-size="8" fill="#1D9E75">−Xs 遅い</text>';
+  s+='<text x="'+lx+'" y="'+(ly+36)+'" font-size="8" fill="#1D9E75">+Xs 速い</text>';
+  s+='<text x="'+lx+'" y="'+(ly+48)+'" font-size="8" fill="#C03030">−Xs 遅い</text>';
 
   s+='</svg>';
 
@@ -1116,7 +1116,7 @@ function drawPhaseChart(phases, times, svActual, svTarget){
   // ドットと差分ラベル
   diffs.forEach(function(d,i){
     var tx=xp2(i), ty=yp2(d);
-    var dotCol=d>0.001?'#C03030':(d<-0.001?'#1D9E75':'#888');
+    var dotCol=d>0.001?'#1D9E75':(d<-0.001?'#C03030':'#888');
     var anchor=i===0?'start':(i===n-1?'end':'middle');
     var dStr=(d>=0?'+':'')+d.toFixed(2)+'s';
     // ラベルは速い(負)→上、遅い(正)→下
